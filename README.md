@@ -38,5 +38,6 @@ pnpm deploy    # 构建并发布到 Cloudflare Workers
   - Environment variables：`SITE_URL=https://你的域名`（不设会退回 `astro.config.mjs` 里的占位域名，canonical / RSS / sitemap 都会写错）
 - 分支预览：非生产分支的构建会跑 Preview 命令（默认 `npx wrangler preview`），它只创建/更新一个 Preview、不会发布到生产；`wrangler.jsonc` 里那个空的 `previews: {}` 块就是它要求的（没有单独设置也要留着）。
 - 运行时版本：Node 由 `.node-version`（24.19.0）决定，pnpm 由 `packageManager` + `pnpm-lock.yaml` 决定。
+- 日志：`wrangler.jsonc` 开了 Workers Logs（`observability.logs`），可在 dashboard → 该 Worker → Observability 查看。注意这台 Worker 没有脚本，命中静态文件的请求不会执行 Worker 代码，所以日志会很安静；要真正的请求日志得加一个最小 Worker 脚本（`main` + `ASSETS` 绑定）。
 - `pnpm-workspace.yaml` 里的 `allowBuilds` 是 pnpm 11 的构建脚本白名单：wrangler 依赖的 esbuild / workerd 需要跑安装脚本，否则会以 `ERR_PNPM_IGNORED_BUILDS` 失败。
 - 换到其他静态托管（Netlify、Vercel 等）：构建命令 `pnpm build`，输出目录 `dist`。
