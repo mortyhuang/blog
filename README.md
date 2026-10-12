@@ -31,7 +31,7 @@ pnpm deploy    # 构建并发布到 Cloudflare Workers
 
 `pnpm build` 生成纯静态 `dist/`，再由 `wrangler.jsonc` 作为 Cloudflare Workers 的静态资源（Static Assets）发布 —— 没有 Worker 脚本，也没有数据库或服务器适配器。
 
-- 本地发布：`pnpm deploy`（= `pnpm build && wrangler deploy`）；只想验证打包可以用 `pnpm exec wrangler deploy --dry-run`。
+- 本地发布：`pnpm build && pnpm exec wrangler deploy`；只想验证打包可以用 `pnpm exec wrangler deploy --dry-run`。
 - Workers Builds（dashboard）里的设置：
   - Build command：`pnpm run build`
   - Deploy command：`npx wrangler deploy` —— 仓库里有 `wrangler.jsonc`，不会再触发自动配置向导；`wrangler` 已固定在 devDependencies，npx 会用本地那一份
