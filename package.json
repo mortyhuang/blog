@@ -9,7 +9,6 @@
     "preview": "astro preview --host 0.0.0.0",
     "check": "astro check",
     "test": "playwright test",
-    "deploy": "pnpm run build && wrangler deploy",
     "update-holidays": "node scripts/update-holidays.mjs"
   },
   "dependencies": {
@@ -25,8 +24,7 @@
     "@astrojs/check": "^0.9.10",
     "@axe-core/playwright": "^4.11.1",
     "@playwright/test": "^1.64.0",
-    "typescript": "^5.9.3",
-    "wrangler": "^4.149.0"
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=24.19.0"

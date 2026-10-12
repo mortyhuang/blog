@@ -1,6 +1,0 @@
-# pnpm 11 的构建脚本白名单（v11 用 allowBuilds 取代了 onlyBuiltDependencies）。
-# wrangler 依赖的 esbuild / workerd 需要跑安装脚本，否则 pnpm 会以
-# ERR_PNPM_IGNORED_BUILDS 报错（CI 里 strictDepBuilds 默认为 true）。
-allowBuilds:
-  esbuild: true
-  workerd: true

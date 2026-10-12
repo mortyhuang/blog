@@ -13,7 +13,6 @@ pnpm build     # 输出静态站点到 dist/
 pnpm preview   # 预览生产构建
 pnpm check     # Astro / TypeScript 检查
 pnpm test      # Playwright 浏览器与无障碍回归测试
-pnpm deploy    # 构建并发布到 Cloudflare Workers
 ```
 
 ## 内容在哪里
@@ -31,6 +30,6 @@ pnpm deploy    # 构建并发布到 Cloudflare Workers
 
 `pnpm build` 生成纯静态 `dist/`，无需数据库或服务器适配器。
 
-- **Cloudflare Workers**：`wrangler.jsonc` 把 `dist/` 当作 Workers Static Assets 发布（没有 Worker 脚本），`pnpm deploy` 一步完成构建与发布。CI 里构建与部署分开时，部署命令用 `pnpm exec wrangler deploy`。
-- **其他静态托管**（Netlify、Vercel、Cloudflare Pages 等）：构建命令 `pnpm build`，输出目录 `dist`。
+- **Cloudflare Pages**：构建命令 `pnpm build`，构建输出目录 `dist`，**不需要填部署命令**（Pages 会把输出目录直接发布；填了 Worker 的 `wrangler deploy` 会跑到 Workers 上去而失败）。Node 版本由仓库里的 `.node-version` 决定，pnpm 版本由 `packageManager` + `pnpm-lock.yaml` 决定。
+- **其他静态托管**（Netlify、Vercel、任意静态服务器）：同样用构建命令 `pnpm build` 与输出目录 `dist`。
 - 发布前在 `.env` 里设置真实域名（参考 `.env.example` 的 `SITE_URL`）。
