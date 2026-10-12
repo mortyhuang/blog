@@ -314,17 +314,27 @@ test('作品入口、项目卡片与三个独立展示页可以直接体验', as
   await expect(page.locator('[data-art-pause]')).toContainText('PAUSED');
 });
 
-test('全年日历渲染农历、假期标记与两组倒计时，并可切换年份', async ({ page }) => {
+test('月历默认当月，全年视图渲染农历、假期标记与两组倒计时，并可切换年份', async ({ page }) => {
   await page.goto('/projects/year-calendar/');
   const label = page.locator('[data-year-output]');
-  const initialText = (await label.textContent())?.trim() ?? '';
-  const initialYear = Number(initialText.replace(/\D/g, ''));
+  const root = page.locator('[data-holiday-calendar]');
+  const yearPanels = page.locator('[data-months-year]');
+  const monthPanel = page.locator('[data-months-month]');
   const currentYear = new Date().getFullYear();
+  const initialYear = Number((await root.getAttribute('data-year')) ?? '0');
 
-  await expect(page.locator('.hc-month')).toHaveCount(12);
-  await expect(page.locator('.hc-day.is-holiday').first()).toBeVisible();
-  await expect(page.locator('.hc-day.is-work').first()).toBeVisible();
-  await expect(page.locator('.hc-day.is-today')).toHaveCount(initialYear === currentYear ? 1 : 0);
+  // 默认就是当月视图，全年 12 个月此时是隐藏的。
+  await expect(monthPanel).toBeVisible();
+  await expect(monthPanel.locator('.hc-month')).toHaveCount(1);
+  await expect(yearPanels).toBeHidden();
+
+  await page.getByRole('button', { name: '全年', exact: true }).click();
+  await expect(yearPanels).toBeVisible();
+  await expect(monthPanel).toBeHidden();
+  await expect(yearPanels.locator('.hc-month')).toHaveCount(12);
+  await expect(yearPanels.locator('.hc-day.is-holiday').first()).toBeVisible();
+  await expect(yearPanels.locator('.hc-day.is-work').first()).toBeVisible();
+  await expect(yearPanels.locator('.hc-day.is-today')).toHaveCount(initialYear === currentYear ? 1 : 0);
   await expect(page.locator('.hc-rows').first().locator('.hc-row')).not.toHaveCount(0);
   await expect(page.locator('[data-progress-output]')).toContainText('已过');
 
@@ -338,24 +348,31 @@ test('全年日历渲染农历、假期标记与两组倒计时，并可切换�
   expect(holidaySum).toBeGreaterThan(0);
   expect(statNumbers[0]).toBe(holidaySum);
   expect(statNumbers[2]).toBe(holidaySum - statNumbers[1]);
-  // 有调休的假期会带“班”字子行，子行里的调休日期数目与汇总一致。
-  const subTexts = await statsOutput.locator('.hc-row-sub').allTextContents();
-  const compSum = subTexts.reduce((sum, text) => sum + (text.match(/\d{2}-\d{2}/g)?.length ?? 0), 0);
-  expect(compSum).toBe(statNumbers[1]);
+  // 一天一个圆点：实心是法定假期，空心是调休上班，总数与汇总一致；行内不再列调休日期。
+  const statRows = statsOutput.locator('.hc-stat-rows .hc-row');
+  await expect(statsOutput.locator('.hc-row-sub')).toHaveCount(0);
+  await expect(statsOutput.locator('.hc-stat.is-holiday .hc-dot.is-holiday')).toHaveCount(1);
+  await expect(statsOutput.locator('.hc-stat.is-comp .hc-dot.is-comp')).toHaveCount(1);
+  await expect(statRows.locator('.hc-dot.is-holiday')).toHaveCount(statNumbers[0]);
+  await expect(statRows.locator('.hc-dot.is-comp')).toHaveCount(statNumbers[1]);
+  for (const row of await statRows.all()) {
+    const days = Number(((await row.locator('.hc-row-info').textContent()) ?? '').match(/· (\d+) 天$/)?.[1] ?? 0);
+    await expect(row.locator('.hc-dot.is-holiday')).toHaveCount(days);
+  }
 
   await page.getByRole('button', { name: '上一年' }).click();
   await expect(label).toHaveText(`${initialYear - 1} 年`);
-  await expect(page.locator('.hc-month')).toHaveCount(12);
-  await expect(page.locator(`.hc-day[data-date="${initialYear - 1}-01-01"]`)).toHaveCount(1);
-  await expect(page.locator('.hc-day.is-today')).toHaveCount(0);
+  await expect(yearPanels.locator('.hc-month')).toHaveCount(12);
+  await expect(yearPanels.locator(`.hc-day[data-date="${initialYear - 1}-01-01"]`)).toHaveCount(1);
+  await expect(yearPanels.locator('.hc-day.is-today')).toHaveCount(0);
   // 统计跟着年份走。
   await expect(page.locator('[data-stats-year]')).toHaveText(String(initialYear - 1));
   const prevStatNumbers = (await statsOutput.locator('.hc-stats strong').allTextContents()).map(Number);
   expect(prevStatNumbers).not.toEqual(statNumbers);
 
   await page.getByRole('button', { name: '回到今年' }).click();
-  await expect(label).toHaveText(initialText);
-  await expect(page.locator('.hc-day.is-today')).toHaveCount(initialYear === currentYear ? 1 : 0);
+  await expect(label).toHaveText(`${initialYear} 年`);
+  await expect(yearPanels.locator('.hc-day.is-today')).toHaveCount(initialYear === currentYear ? 1 : 0);
   await expect(page.locator('[data-stats-year]')).toHaveText(String(initialYear));
   await expect(statsOutput.locator('.hc-stats strong').first()).toHaveText(String(statNumbers[0]));
 });
@@ -369,21 +386,33 @@ test('月历支持全年与当月两种视图，并可记住选择', async ({ pa
   const initialYear = Number((await root.getAttribute('data-year')) ?? '0');
   const currentMonth = new Date().getMonth() + 1;
 
-  await expect(yearPanels).toBeVisible();
-  await expect(yearPanels.locator('.hc-month')).toHaveCount(12);
-  await expect(monthPanel).toBeHidden();
-
-  await page.getByRole('button', { name: '当月', exact: true }).click();
-  await expect(yearPanels).toBeHidden();
+  // 默认打开当月视图。
   await expect(monthPanel).toBeVisible();
   await expect(monthPanel.locator('.hc-month')).toHaveCount(1);
   await expect(monthPanel.locator('.hc-day-note').first()).toBeVisible();
   await expect(label).toHaveText(`${initialYear} 年 ${currentMonth} 月`);
   await expect(monthPanel.locator('.hc-day.is-today')).toHaveCount(1);
+  await expect(yearPanels).toBeHidden();
+
+  await page.getByRole('button', { name: '全年', exact: true }).click();
+  await expect(yearPanels).toBeVisible();
+  await expect(yearPanels.locator('.hc-month')).toHaveCount(12);
+  await expect(monthPanel).toBeHidden();
+  await page.getByRole('button', { name: '当月', exact: true }).click();
+  await expect(monthPanel).toBeVisible();
+
+  // 「回到本月」在视图切换按钮左边，而且不可用时也占位，所以页头不会跳。
+  const viewSwitch = page.locator('[data-view-switch]');
+  await expect(page.getByRole('button', { name: '回到本月' })).toHaveCount(0);
+  const switchBefore = (await viewSwitch.boundingBox()) ?? { x: 0, width: 0 };
 
   // 当月视图里箭头换月份，跳年时同步更新年度进度。
   const previous = new Date(initialYear, currentMonth - 2, 1);
   await page.getByRole('button', { name: '上一月' }).click();
+  await expect(page.getByRole('button', { name: '回到本月' })).toBeVisible();
+  const resetBox = (await page.locator('[data-year-reset]').boundingBox()) ?? { x: 0, width: 0 };
+  expect(resetBox.x + resetBox.width).toBeLessThanOrEqual(switchBefore.x + 0.5);
+  expect(Math.abs(((await viewSwitch.boundingBox())?.x ?? 0) - switchBefore.x)).toBeLessThan(1);
   await expect(label).toHaveText(`${previous.getFullYear()} 年 ${previous.getMonth() + 1} 月`);
   await expect(page.locator('[data-progress-year]')).toHaveText(String(previous.getFullYear()));
 
@@ -431,6 +460,44 @@ test('发薪日可以自己设置并记住选择', async ({ page }) => {
   await page.reload();
   await expect(page.locator('[data-wage-output] .hc-row')).toHaveCount(2);
   await expect(page.locator('[data-wage-output] .hc-row-label')).toHaveText(['20号', '最后工作日']);
+});
+
+test('发薪进度条按上一次发薪到这次发薪的周期计算', async ({ page }) => {
+  await page.goto('/projects/year-calendar/');
+  const rows = page.locator('[data-wage-output] .hc-row');
+  await expect(rows).toHaveCount(1);
+
+  // 分母是上一次发薪到这次发薪的总天数，分子是已经过去的天数。
+  const cycleTitle = (await rows.first().getAttribute('title')) ?? '';
+  expect(cycleTitle).toMatch(/^本发薪周期已过 \d+ \/ \d+ 天$/);
+  const [, passed, total] = cycleTitle.match(/已过 (\d+) \/ (\d+) 天/) ?? [];
+  expect(Number(passed)).toBeGreaterThan(0);
+  expect(Number(passed)).toBeLessThanOrEqual(Number(total));
+  await expect(rows.first().locator('.hc-bar-fill')).toHaveAttribute('style', `width:${Math.round((Number(passed) / Number(total)) * 100)}%`);
+
+  // 把发薪日设成今天：工作日应当算满格并显示「今天发」，撞上周末或假期才顺延。
+  const today = new Date();
+  const ymd = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+  const classes = (await page.locator(`.hc-day[data-date="${ymd}"]`).first().getAttribute('class')) ?? '';
+  const weekday = today.getDay();
+  const isWorkDay = classes.includes('is-work') || (weekday !== 0 && weekday !== 6 && !classes.includes('is-holiday'));
+
+  const day = String(today.getDate());
+  await page.locator('[data-pay-input]').fill(day);
+  await page.getByRole('button', { name: '添加' }).click();
+  const todayRow = page.locator('[data-wage-output] .hc-row').filter({ has: page.locator(`.hc-row-label:text-is("${day}号")`) });
+  await expect(todayRow).toHaveCount(1);
+
+  if (isWorkDay) {
+    await expect(todayRow.locator('.hc-row-info')).toHaveText('今天发');
+    await expect(todayRow.locator('.hc-bar-fill')).toHaveAttribute('style', 'width:100%');
+    const todayTitle = (await todayRow.getAttribute('title')) ?? '';
+    expect(todayTitle).toMatch(/^本发薪周期已过 \d+ \/ \d+ 天$/);
+    const [, todayPassed, todayTotal] = todayTitle.match(/已过 (\d+) \/ (\d+) 天/) ?? [];
+    expect(Number(todayPassed)).toBe(Number(todayTotal));
+  } else {
+    await expect(todayRow.locator('.hc-row-info')).toContainText('顺延至');
+  }
 });
 
 test('全站页头页脚最大 640px 且居中，导航与操作按钮不越界', async ({ page }) => {

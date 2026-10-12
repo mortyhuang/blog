@@ -23,7 +23,7 @@ export default defineConfig({
     { name: 'mobile', use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } },
   ],
   webServer: {
-    command: 'npm run build && npm run preview -- --port 4322 --ignore-lock',
+    command: 'pnpm build && pnpm preview --port 4322 --ignore-lock',
     // Astro 7 auto-backgrounds inside agents; --ignore-lock keeps this test server in the foreground.
     url: 'http://localhost:4322',
     reuseExistingServer: !process.env.CI,
