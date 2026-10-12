@@ -13,6 +13,7 @@ pnpm build     # 输出静态站点到 dist/
 pnpm preview   # 预览生产构建
 pnpm check     # Astro / TypeScript 检查
 pnpm test      # Playwright 浏览器与无障碍回归测试
+pnpm deploy    # 构建并发布到 Cloudflare Workers
 ```
 
 ## 内容在哪里
@@ -28,8 +29,13 @@ pnpm test      # Playwright 浏览器与无障碍回归测试
 
 ## 部署
 
-`pnpm build` 生成纯静态 `dist/`，无需数据库或服务器适配器。
+`pnpm build` 生成纯静态 `dist/`，再由 `wrangler.jsonc` 作为 Cloudflare Workers 的静态资源（Static Assets）发布 —— 没有 Worker 脚本，也没有数据库或服务器适配器。
 
-- **Cloudflare Pages**：构建命令 `pnpm build`，构建输出目录 `dist`，**不需要填部署命令**（Pages 会把输出目录直接发布；填了 Worker 的 `wrangler deploy` 会跑到 Workers 上去而失败）。Node 版本由仓库里的 `.node-version` 决定，pnpm 版本由 `packageManager` + `pnpm-lock.yaml` 决定。
-- **其他静态托管**（Netlify、Vercel、任意静态服务器）：同样用构建命令 `pnpm build` 与输出目录 `dist`。
-- 发布前在 `.env` 里设置真实域名（参考 `.env.example` 的 `SITE_URL`）。
+- 本地发布：`pnpm deploy`（= `pnpm build && wrangler deploy`）；只想验证打包可以用 `pnpm exec wrangler deploy --dry-run`。
+- Workers Builds（dashboard）里的设置：
+  - Build command：`pnpm run build`
+  - Deploy command：`npx wrangler deploy` —— 仓库里有 `wrangler.jsonc`，不会再触发自动配置向导；`wrangler` 已固定在 devDependencies，npx 会用本地那一份
+  - Environment variables：`SITE_URL=https://你的域名`（不设会退回 `astro.config.mjs` 里的占位域名，canonical / RSS / sitemap 都会写错）
+- 运行时版本：Node 由 `.node-version`（24.19.0）决定，pnpm 由 `packageManager` + `pnpm-lock.yaml` 决定。
+- `pnpm-workspace.yaml` 里的 `allowBuilds` 是 pnpm 11 的构建脚本白名单：wrangler 依赖的 esbuild / workerd 需要跑安装脚本，否则会以 `ERR_PNPM_IGNORED_BUILDS` 失败。
+- 换到其他静态托管（Netlify、Vercel 等）：构建命令 `pnpm build`，输出目录 `dist`。

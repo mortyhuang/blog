@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "blog",
+  "compatibility_date": "2026-10-12",
+  // 纯静态站点：dist 作为 Workers Static Assets 直接服务，没有 Worker 脚本。
+  "assets": {
+    "directory": "./dist",
+    // 未命中的路径回落到自定义 404 页面。
+    "not_found_handling": "404-page"
+  }
+}
