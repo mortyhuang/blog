@@ -7,5 +7,8 @@
     "directory": "./dist",
     // 未命中的路径回落到自定义 404 页面。
     "not_found_handling": "404-page"
-  }
+  },
+  // Worker Previews（分支预览）需要这个块，即使没有单独的 Preview 设置也要留空；
+  // 只跑 `wrangler deploy` 的部署用不到它。
+  "previews": {}
 }
