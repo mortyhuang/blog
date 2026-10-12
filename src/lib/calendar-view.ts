@@ -3,7 +3,7 @@
  * 保证首屏与交互后的 DOM 结构完全一致。
  */
 
-import { formatMonthDay, fromYmd, parseDaysLeft, type HolidayRow, type HolidayStats, type PaySpec, type WageRow, type YearProgress } from './holidays';
+import { formatMonthDay, fromYmd, type HolidayRow, type HolidayStats, type PaySpec, type WageRow, type YearProgress } from './holidays';
 
 const HTML_ESCAPES: Record<string, string> = {
   '&': '&amp;',
@@ -37,12 +37,10 @@ export function renderWageRows(rows: WageRow[]): string {
   if (rows.length === 0) {
     return '<p class="hc-empty">还没有发薪日，在上面添加一个吧。</p>';
   }
-  const maxDays = Math.max(1, ...rows.map((row) => parseDaysLeft(row.info) ?? 0));
   const items = rows.map((row) => {
-    const days = parseDaysLeft(row.info) ?? 0;
-    const ratio = Math.max(0, Math.min(1, 1 - days / maxDays));
     const classes = `hc-row${row.isToday ? ' is-today' : ''}`;
-    return `<li class="${classes}"><span class="hc-row-label">${escapeHtml(row.label)}</span>${renderBar(ratio)}<span class="hc-row-info">${escapeHtml(row.info)}</span></li>`;
+    const title = `本发薪周期已过 ${row.elapsedDays} / ${row.cycleDays} 天`;
+    return `<li class="${classes}" title="${escapeHtml(title)}"><span class="hc-row-label">${escapeHtml(row.label)}</span>${renderBar(row.ratio)}<span class="hc-row-info">${escapeHtml(row.info)}</span></li>`;
   });
   return `<ul class="hc-rows">${items.join('')}</ul>`;
 }
@@ -65,13 +63,20 @@ function formatRange(start: string, end: string): string {
   return startLabel === endLabel ? startLabel : `${startLabel}~${endLabel}`;
 }
 
-/** 假期统计：三个汇总数字，下面每个假期一行，标出日期区间与调休上班日。 */
+/** 假期统计一天一个小圆点：实心是法定假期，空心是调休上班。 */
+function renderDayDots(days: number, compDays: number): string {
+  const dots = '<span class="hc-dot is-holiday"></span>'.repeat(days) + '<span class="hc-dot is-comp"></span>'.repeat(compDays);
+  const label = `法定假期 ${days} 天${compDays > 0 ? `，调休上班 ${compDays} 天` : ''}`;
+  return `<span class="hc-dots" role="img" aria-label="${label}">${dots}</span>`;
+}
+
+/** 假期统计：三个汇总数字，下面每个假期一行，用圆点标出假期与调休的天数。 */
 export function renderHolidayStats(stats: HolidayStats): string {
   const summary = [
     '<div class="hc-stats">',
-    `<span class="hc-stat is-holiday"><strong>${stats.holidays}</strong><span>天法定假期</span></span>`,
-    `<span class="hc-stat is-comp"><strong>${stats.comp}</strong><span>天调休上班</span></span>`,
-    `<span class="hc-stat" title="放假减去补班，实际比标准周末多休的天数"><strong>${stats.net >= 0 ? '+' : ''}${stats.net}</strong><span>天净多休</span></span>`,
+    `<span class="hc-stat is-holiday"><span class="hc-dot is-holiday" aria-hidden="true"></span><strong>${stats.holidays}</strong><span>天法定假期</span></span>`,
+    `<span class="hc-stat is-comp"><span class="hc-dot is-comp" aria-hidden="true"></span><strong>${stats.comp}</strong><span>天调休上班</span></span>`,
+    `<span class="hc-stat" title="法定假期减去调休上班，实际休假的天数"><strong>${stats.net}</strong><span>天实际法定假期</span></span>`,
     '</div>',
   ].join('');
 
@@ -79,18 +84,13 @@ export function renderHolidayStats(stats: HolidayStats): string {
     return `${summary}<p class="hc-empty">这一年还没有公开安排，等下一次国务院公告。</p>`;
   }
 
-  const maxDays = Math.max(1, ...stats.items.map((item) => item.days));
   const rows = stats.items.map((item) => {
     const classes = ['hc-row'];
     if (item.status === 'ongoing') classes.push('is-ongoing');
     if (item.status === 'past') classes.push('is-past');
     const compDates = item.compDates.map((date) => formatMonthDay(fromYmd(date))).join('、');
-    const sub =
-      item.compDays > 0
-        ? `<span class="hc-row-sub"><span class="hc-comp-flag" aria-hidden="true">班</span>调休上班 ${escapeHtml(compDates)}</span>`
-        : '';
-    const title = `${stats.year}年${formatMonthDay(fromYmd(item.startDate))} 至 ${item.endDate}，共 ${item.days} 天${item.compDays > 0 ? `；${compDates} 调休上班` : ''}`;
-    return `<li class="${classes.join(' ')}" title="${escapeHtml(title)}"><span class="hc-row-label">${escapeHtml(item.name)}</span>${renderBar(item.days / maxDays)}<span class="hc-row-info">${escapeHtml(formatRange(item.startDate, item.endDate))} · ${item.days} 天</span>${sub}</li>`;
+    const title = `${stats.year}年${formatMonthDay(fromYmd(item.startDate))} 至 ${formatMonthDay(fromYmd(item.endDate))}，放假 ${item.days} 天${item.compDays > 0 ? `；${compDates} 调休上班` : ''}`;
+    return `<li class="${classes.join(' ')}" title="${escapeHtml(title)}"><span class="hc-row-label">${escapeHtml(item.name)}</span>${renderDayDots(item.days, item.compDays)}<span class="hc-row-info">${escapeHtml(formatRange(item.startDate, item.endDate))} · ${item.days} 天</span></li>`;
   });
   return `${summary}<ul class="hc-rows hc-stat-rows">${rows.join('')}</ul>`;
 }

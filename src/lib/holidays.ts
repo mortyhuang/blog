@@ -31,6 +31,11 @@ export interface WageRow {
   info: string;
   daysLeft: number;
   isToday: boolean;
+  /** 本发薪周期的进度：上一次发薪到这次发薪之间已经过去的比例，发薪当天算满格。 */
+  ratio: number;
+  /** 本周期的总天数（上一次发薪 → 这次发薪）与其中已过的天数。 */
+  cycleDays: number;
+  elapsedDays: number;
 }
 
 /** 发薪日设置：每月的几号（可多选）以及要不要算上当月最后一个工作日。 */
@@ -92,10 +97,6 @@ export function addDays(date: Date, days: number): Date {
 
 export function diffDays(later: Date, earlier: Date): number {
   return dayNumber(later) - dayNumber(earlier);
-}
-
-export function isSameDay(a: Date, b: Date): boolean {
-  return dayNumber(a) === dayNumber(b);
 }
 
 export function isWeekend(date: Date): boolean {
@@ -186,39 +187,63 @@ export function normalizePaySpec(value: unknown): PaySpec {
 
 /* -------------------------------------------------------------- 发薪倒计时 */
 
-/** 某个月的发薪日：数字的按当月实际天数截断，「最后工作日」按工作日回推。 */
+/** 某个月里设置的发薪日（还没顺延）：数字的按当月实际天数截断，「最后工作日」按工作日回推。 */
 function paydayInMonth(monthAnchor: Date, day: number | 'last', flags: DayFlags): Date {
   if (day === 'last') return lastWorkDayOfMonth(monthAnchor, flags);
   const lastDayOfMonth = new Date(monthAnchor.getFullYear(), monthAnchor.getMonth() + 1, 0).getDate();
   return new Date(monthAnchor.getFullYear(), monthAnchor.getMonth(), Math.min(day, lastDayOfMonth));
 }
 
+/** 设置的发薪日，加上撞上周末或法定假期后顺延得到的实际到账日。 */
+interface PaydaySlot {
+  raw: Date;
+  actual: Date;
+}
+
+/** 前后各两个月里的发薪日，按实际到账日升序排列，保证今天两侧都至少有一次。 */
+function paydaySlots(today: Date, target: number | 'last', flags: DayFlags): PaydaySlot[] {
+  const slots: PaydaySlot[] = [];
+  for (let offset = -2; offset <= 2; offset += 1) {
+    const anchor = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+    const raw = paydayInMonth(anchor, target, flags);
+    slots.push({ raw, actual: nextWorkDay(raw, flags) });
+  }
+  return slots.sort((a, b) => diffDays(a.actual, b.actual));
+}
+
 /**
  * 按设置里的发薪日列出倒计时；撞上周末或法定假期时顺延到下一个工作日。
  * 每月的「最后工作日」可以单独打开。
+ *
+ * 进度条按「上一次发薪 → 这次发薪」这一个周期算：分母是这个周期的总天数，
+ * 分子是从上一次发薪到今天已经过去的天数，所以发薪当天刚好满格。
  */
 export function getWageRows(today: Date, flags: DayFlags, spec: PaySpec = DEFAULT_PAY_SPEC): WageRow[] {
   const preset = normalizePaySpec(spec);
   const targets: (number | 'last')[] = preset.lastWorkDay ? [...preset.days, 'last'] : preset.days;
   if (targets.length === 0) return [];
 
-  const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-
   const rows = targets.map((target) => {
     const label = target === 'last' ? '最后工作日' : `${target}号`;
-    const candidates = [paydayInMonth(thisMonth, target, flags), paydayInMonth(nextMonth, target, flags)];
-    const date = candidates.find((candidate) => diffDays(candidate, today) >= 0) ?? candidates[1];
+    const slots = paydaySlots(today, target, flags);
+    // 下一次发薪按顺延后的实际到账日比较，发薪当天也还在本周期里。
+    const found = slots.findIndex((slot) => diffDays(slot.actual, today) >= 0);
+    const index = found === -1 ? slots.length - 1 : found;
+    const next = slots[index];
+    const previous = slots[Math.max(0, index - 1)];
 
-    if (isSameDay(date, today)) {
-      return { label, info: '今天发', daysLeft: 0, isToday: true };
+    const cycleDays = Math.max(1, diffDays(next.actual, previous.actual));
+    const elapsedDays = Math.min(cycleDays, Math.max(0, diffDays(today, previous.actual)));
+    const daysLeft = diffDays(next.actual, today);
+    const base = { label, ratio: elapsedDays / cycleDays, cycleDays, elapsedDays };
+
+    if (daysLeft === 0) {
+      return { ...base, info: '今天发', daysLeft: 0, isToday: true };
     }
 
-    const payday = nextWorkDay(date, flags);
-    const daysLeft = diffDays(payday, today);
-    const shifted = diffDays(payday, date) > 0;
-    const info = `还有${daysLeft}天${shifted ? `（顺延至${formatMonthDay(payday)}）` : ''}`;
-    return { label, info, daysLeft, isToday: false };
+    const shifted = diffDays(next.actual, next.raw) > 0;
+    const info = `还有${daysLeft}天${shifted ? `（顺延至${formatMonthDay(next.actual)}）` : ''}`;
+    return { ...base, info, daysLeft, isToday: false };
   });
 
   return rows.sort((a, b) => a.daysLeft - b.daysLeft || a.label.localeCompare(b.label));
@@ -271,7 +296,7 @@ export interface HolidayStats {
   holidays: number;
   /** 调休上班天数 */
   comp: number;
-  /** 放假减去补班，实际多休的天数 */
+  /** 法定假期减去调休上班，实际休假的天数 */
   net: number;
   items: HolidayStatsItem[];
 }
@@ -312,10 +337,4 @@ export function getYearProgress(today: Date, year: number = today.getFullYear())
     total,
     isCurrent: year === currentYear,
   };
-}
-
-/** 从倒计时文案里取回天数，用于计算进度条比例。 */
-export function parseDaysLeft(info: string): number | null {
-  const match = info.match(/还有(\d+)天/);
-  return match ? Number(match[1]) : null;
 }

@@ -1,12 +1,12 @@
 ---
 /**
- * 全年日历：年度进度 + 12 个月月历（农历 / 节气 / 假期 / 调休）+ 发薪与假期倒计时。
+ * 月历默认打开当月，可切到全年；年度进度 + 12 个月月历（农历 / 节气 / 假期 / 调休）+ 发薪与假期倒计时。
  * 结构与逻辑参考终端工具 fished，首屏在构建时静态渲染，浏览器负责把「今天」相关的部分刷新到当前日期。
  */
 import holidaysData from '../data/holidays.json';
 import { buildDayFlags, dataYears, getHolidayRows, getHolidayStats, getWageRows, getYearProgress, type HolidayData } from '../lib/holidays';
 import { renderHolidayRows, renderHolidayStats, renderProgress, renderWageRows } from '../lib/calendar-view';
-import { renderMonths } from '../lib/lunar-calendar';
+import { renderMonthView, renderMonths } from '../lib/lunar-calendar';
 
 const data = holidaysData as HolidayData;
 const years = dataYears(data);
@@ -44,15 +44,15 @@ const holidayStats = getHolidayStats(initialYear, data, today);
     <div class="hc-panel-head">
       <h2 id="hc-calendar-title">月历</h2>
       <div class="hc-panel-controls">
+        <button type="button" class="hc-year-reset mono" data-year-reset data-at-now="true">回到本月</button>
         <div class="hc-view-switch" role="group" aria-label="切换视图" data-view-switch hidden>
-          <button type="button" class="hc-view-button" data-view="year" aria-pressed="true">全年</button>
-          <button type="button" class="hc-view-button" data-view="month" aria-pressed="false">当月</button>
+          <button type="button" class="hc-view-button" data-view="year" aria-pressed="false">全年</button>
+          <button type="button" class="hc-view-button" data-view="month" aria-pressed="true">当月</button>
         </div>
-        <div class="hc-year-nav" role="group" aria-label="切换年份" data-year-nav hidden>
-          <button type="button" class="hc-year-button" data-year-prev aria-label="上一年">←</button>
-          <output class="hc-year-output mono" data-year-output>{initialYear} 年</output>
-          <button type="button" class="hc-year-button" data-year-next aria-label="下一年">→</button>
-          <button type="button" class="hc-year-reset mono" data-year-reset hidden>回到今年</button>
+        <div class="hc-year-nav" role="group" aria-label="切换月份" data-year-nav hidden>
+          <button type="button" class="hc-year-button" data-year-prev aria-label="上一月">←</button>
+          <output class="hc-year-output mono" data-year-output>{initialYear} 年 {initialMonth} 月</output>
+          <button type="button" class="hc-year-button" data-year-next aria-label="下一月">→</button>
         </div>
       </div>
     </div>
@@ -62,8 +62,14 @@ const holidayStats = getHolidayStats(initialYear, data, today);
       <span><span class="hc-legend-today" aria-hidden="true"></span>今天</span>
       <span class="hc-legend-note">{firstYear}–{lastYear} 年安排来自国务院办公厅公告</span>
     </p>
-    <div class="hc-months" data-months-year data-year={initialYear} set:html={renderMonths(initialYear, flags)} />
-    <div class="hc-months is-month" data-months-month data-year={initialYear} data-month={initialMonth} hidden />
+    <div class="hc-months" data-months-year data-year={initialYear} set:html={renderMonths(initialYear, flags)} hidden />
+    <div
+      class="hc-months is-month"
+      data-months-month
+      data-year={initialYear}
+      data-month={initialMonth}
+      set:html={renderMonthView(initialYear, initialMonth, flags)}
+    />
   </section>
 
   <div class="hc-columns">
@@ -236,6 +242,11 @@ const holidayStats = getHolidayStats(initialYear, data, today);
     font-size: 9px;
     letter-spacing: 0.4px;
   }
+  /* 按钮在视图切换左侧，不可用时也占位（只隐藏不可见），避免出现/消失时把页头布局顶来顶去。 */
+  .holiday-calendar .hc-year-reset[data-at-now='true'] {
+    visibility: hidden;
+    pointer-events: none;
+  }
   .holiday-calendar .hc-year-button:hover:not(:disabled),
   .holiday-calendar .hc-year-reset:hover {
     color: var(--accent-strong);
@@ -247,7 +258,8 @@ const holidayStats = getHolidayStats(initialYear, data, today);
     cursor: default;
   }
   .holiday-calendar .hc-year-output {
-    min-width: 4.6em;
+    /* 固定的最小宽度：换月/换年时“2026 年 10 月”长短不一，也不让箭头位置抖动。 */
+    min-width: 7.5em;
     text-align: center;
     font-size: 11px;
     color: var(--heading);
@@ -644,25 +656,27 @@ const holidayStats = getHolidayStats(initialYear, data, today);
   .holiday-calendar .hc-stat.is-comp strong {
     color: var(--hc-work-strong);
   }
-  .holiday-calendar .hc-row-sub {
-    grid-column: 1 / -1;
+  /* 假期统计的圆点：实心是法定假期，空心是调休上班；汇总卡片上的圆点兼作图例。 */
+  .holiday-calendar .hc-dots {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
-    font: 9.5px var(--mono);
-    color: var(--hc-work-strong);
+    gap: 3px;
   }
-  .holiday-calendar .hc-comp-flag {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 14px;
-    height: 14px;
-    border-radius: 3px;
-    font-size: 8px;
-    line-height: 1;
-    background: var(--hc-work-strong);
-    color: var(--hc-work-on);
+  .holiday-calendar .hc-dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .holiday-calendar .hc-dot.is-holiday {
+    background: var(--hc-holiday-strong);
+  }
+  .holiday-calendar .hc-dot.is-comp {
+    box-shadow: inset 0 0 0 1.5px var(--hc-work-strong);
+  }
+  .holiday-calendar .hc-stat > .hc-dot {
+    align-self: center;
   }
 
   @media (max-width: 30rem) {
@@ -701,8 +715,8 @@ const holidayStats = getHolidayStats(initialYear, data, today);
     .holiday-calendar .hc-row .hc-bar {
       grid-area: bar;
     }
-    .holiday-calendar .hc-row-sub {
-      grid-column: 1 / -1;
+    .holiday-calendar .hc-row .hc-dots {
+      grid-area: bar;
     }
     .holiday-calendar .hc-stat strong {
       font-size: 17px;
@@ -762,9 +776,9 @@ const holidayStats = getHolidayStats(initialYear, data, today);
 
   function readView(): CalendarView {
     try {
-      return localStorage.getItem(VIEW_KEY) === 'month' ? 'month' : 'year';
+      return localStorage.getItem(VIEW_KEY) === 'year' ? 'year' : 'month';
     } catch {
-      return 'year';
+      return 'month';
     }
   }
 
@@ -897,7 +911,7 @@ const holidayStats = getHolidayStats(initialYear, data, today);
       nextButton.disabled = view === 'year' ? year >= lastYear : monthIndex >= lastYear * 12 + 11;
       prevButton.setAttribute('aria-label', view === 'year' ? '上一年' : '上一月');
       nextButton.setAttribute('aria-label', view === 'year' ? '下一年' : '下一月');
-      resetButton.hidden = atNow;
+      resetButton.dataset.atNow = String(atNow);
       resetButton.textContent = view === 'year' ? '回到今年' : '回到本月';
       monthNavEl.setAttribute('aria-label', view === 'year' ? '切换年份' : '切换月份');
 
@@ -906,7 +920,7 @@ const holidayStats = getHolidayStats(initialYear, data, today);
       }
     };
 
-    // 全年视图的首屏是构建时渲染的，只有真正需要时才拉取农历库。
+    // 两个视图的首屏都是构建时渲染的，只有真正需要时才拉取农历库。
     const showPanels = async () => {
       if (view === 'year') {
         monthEl.hidden = true;
@@ -919,8 +933,12 @@ const holidayStats = getHolidayStats(initialYear, data, today);
       } else {
         yearEl.hidden = true;
         monthEl.hidden = false;
-        const { renderMonthView } = await loadRendererWithRecover();
-        monthEl.innerHTML = renderMonthView(year, month, flags);
+        if (monthEl.dataset.year !== String(year) || monthEl.dataset.month !== String(month)) {
+          const { renderMonthView } = await loadRendererWithRecover();
+          monthEl.innerHTML = renderMonthView(year, month, flags);
+          monthEl.dataset.year = String(year);
+          monthEl.dataset.month = String(month);
+        }
       }
       syncNav();
       refreshLive();

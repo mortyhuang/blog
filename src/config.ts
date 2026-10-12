@@ -5,6 +5,6 @@ export const site = {
   author: 'Morty',
   email: 'hello@example.com',
   language: 'zh-CN',
-  github: 'https://github.com/',
+  github: 'https://github.com/mortyhuang/blog',
   since: 2026,
 };
