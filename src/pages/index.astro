@@ -1,0 +1,40 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostRow from '../components/PostRow.astro';
+import Icon from '../components/Icon.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { getPosts } from '../lib/posts';
+import { featuredProjects } from '../data/projects';
+import { site } from '../config';
+
+const posts = await getPosts();
+---
+<BaseLayout>
+<div class="home-page">
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow hero-eyebrow"><span class="tiny-star">✳</span> 欢迎来到我的数字花园</div>
+      <h1>保持好奇，<br />让想法<span class="hero-em">生长<svg viewBox="0 0 160 12" aria-hidden="true"><path d="M3 8Q80 1 157 6" /></svg></span>。</h1>
+      <p class="hero-description">写代码，也观察生活。这里记录我在前端、设计与<br class="desktop-break" />创意编程之间的探索，以及那些不想忘记的灵感。</p>
+      <div class="hero-actions"><a href="#articles" class="button button-primary">开始探索 <Icon name="arrow" size={17} /></a><a href="/about/" class="text-link">更多关于我 <Icon name="arrow-up" size={16} /></a></div>
+      <div class="hero-social"><a href={site.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub"><Icon name="github" size={17} /></a><a href="/rss.xml" aria-label="RSS 订阅"><Icon name="rss" size={17} /></a></div>
+    </div>
+  </section>
+
+  <section id="articles" class="home-section" aria-labelledby="articles-title">
+    <div class="section-heading">
+      <div class="section-title"><h2 id="articles-title">文章</h2></div>
+      <a class="small-link" href="/posts/">全部文章 <Icon name="arrow" size={14} /></a>
+    </div>
+    <div class="home-posts">{posts.map((post) => <PostRow post={post} />)}</div>
+  </section>
+
+  <section id="projects" class="home-section" aria-labelledby="projects-title">
+    <div class="section-heading">
+      <div class="section-title"><h2 id="projects-title">作品</h2></div>
+      <a class="small-link" href="/projects/">全部作品 <Icon name="arrow" size={14} /></a>
+    </div>
+    <div class="project-previews">{featuredProjects.map((project) => <ProjectCard project={project} compact />)}</div>
+  </section>
+</div>
+</BaseLayout>

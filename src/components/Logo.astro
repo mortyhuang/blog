@@ -1,0 +1,15 @@
+---
+import { site } from '../config';
+interface Props { small?: boolean }
+const { small = false } = Astro.props;
+const name = site.name.replace(/\.$/, '');
+---
+<a href="/" class:list={['brand', { 'brand-small': small }]} aria-label={`${site.name} 首页`}>
+  <svg class="brand-symbol" viewBox="0 0 36 36" width="35" height="35" aria-hidden="true">
+    <g fill="currentColor">
+      {Array.from({ length: 8 }, (_, i) => <ellipse cx="18" cy="8" rx="2.3" ry="6.2" transform={`rotate(${i * 45} 18 18)`} />)}
+      <circle cx="18" cy="18" r="3.2" />
+    </g>
+  </svg>
+  <span>{name}{site.name.endsWith('.') && <span class="brand-dot">.</span>}</span>
+</a>

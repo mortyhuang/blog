@@ -1,0 +1,18 @@
+---
+import Logo from './Logo.astro';
+import Icon from './Icon.astro';
+const pathname = Astro.url.pathname;
+const links = [{ href: '/', text: '首页' }, { href: '/posts/', text: '文章' }, { href: '/projects/', text: '作品' }, { href: '/about/', text: '关于' }];
+---
+<header class="site-header container">
+  <div class="header-brand"><Logo /><span class="brand-caption">一个缓慢生长的数字花园</span></div>
+  <div class="header-right">
+    <nav class="main-nav" aria-label="主导航">
+      {links.map(({ href, text }) => <a href={href} aria-current={(href === '/' ? pathname === '/' : pathname.startsWith(href)) ? 'page' : undefined}>{text}</a>)}
+    </nav>
+    <div class="header-actions">
+      <button class="search-trigger" data-search-open aria-label="搜索文章"><Icon name="search" size={17} /><span>搜索</span><kbd>⌘ K</kbd></button>
+      <button class="icon-button theme-toggle" data-theme-toggle aria-label="切换到深色主题" title="切换主题"><Icon name="sun" class="sun-icon" size={18} /><Icon name="moon" class="moon-icon" size={18} /></button>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,31 @@
+---
+import CoverArt from './CoverArt.astro';
+import Icon from './Icon.astro';
+import { isExternalProject, type Project } from '../data/projects';
+
+interface Props { project: Project; compact?: boolean }
+const { project, compact = false } = Astro.props;
+const external = isExternalProject(project);
+const label = external ? `${project.title}（在新标签页打开）` : project.title;
+---
+<a
+  href={project.href}
+  class:list={[compact ? 'project-preview' : 'project-card']}
+  data-project-card={!compact ? project.id : undefined}
+  data-project-preview={compact ? project.id : undefined}
+  target={external ? '_blank' : undefined}
+  rel={external ? 'noopener noreferrer' : undefined}
+  aria-label={label}
+>
+  {!compact && <CoverArt kind={project.cover} />}
+  {compact && (
+    <h3 class="project-preview-title">{project.title}</h3>
+  )}
+  {!compact && (
+    <div class="project-card-body">
+      <h3>{project.title}</h3>
+      <p>{project.description}</p>
+      <span class="project-card-action">查看作品 <Icon name={external ? 'arrow-up' : 'arrow'} size={16} /></span>
+    </div>
+  )}
+</a>

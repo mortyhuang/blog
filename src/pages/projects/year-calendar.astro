@@ -1,0 +1,14 @@
+---
+import ProjectLayout from '../../layouts/ProjectLayout.astro';
+import HolidayCalendar from '../../components/HolidayCalendar.astro';
+import { calendarProject } from '../../data/projects';
+---
+<ProjectLayout project={calendarProject}>
+  <HolidayCalendar />
+  <Fragment slot="details">
+    <h2>假期与调休的统计</h2>
+    <p>统计面板按国务院安排汇总每一整年：法定假期一共几天、要补班几天、实际比标准周末多休几天，下面每个假期一行，标出日期区间、天数与调休上班的日子。列表跟着月历的年份走，切年份就能对比不同年份的安排；已过的假期会灰显，假期中的那一个会高亮。</p>
+    <h2>数据与细节</h2>
+    <p>放假与调休安排整理自国务院办公厅公告（via <a href="https://github.com/lanceliao/china-holiday-calender" rel="noopener noreferrer" target="_blank">china-holiday-calender</a>），农历、节气与节日来自 <a href="https://github.com/6tail/lunar-javascript" rel="noopener noreferrer" target="_blank">lunar-javascript</a>。数据文件随站点一起构建，页面不会请求任何第三方接口。</p>
+  </Fragment>
+</ProjectLayout>

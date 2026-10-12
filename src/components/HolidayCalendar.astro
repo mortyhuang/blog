@@ -1,0 +1,973 @@
+---
+/**
+ * 全年日历：年度进度 + 12 个月月历（农历 / 节气 / 假期 / 调休）+ 发薪与假期倒计时。
+ * 结构与逻辑参考终端工具 fished，首屏在构建时静态渲染，浏览器负责把「今天」相关的部分刷新到当前日期。
+ */
+import holidaysData from '../data/holidays.json';
+import { buildDayFlags, dataYears, getHolidayRows, getHolidayStats, getWageRows, getYearProgress, type HolidayData } from '../lib/holidays';
+import { renderHolidayRows, renderHolidayStats, renderProgress, renderWageRows } from '../lib/calendar-view';
+import { renderMonths } from '../lib/lunar-calendar';
+
+const data = holidaysData as HolidayData;
+const years = dataYears(data);
+const today = new Date();
+const currentYear = today.getFullYear();
+const firstYear = years[0] ?? currentYear;
+const lastYear = years[years.length - 1] ?? currentYear;
+const initialYear = Math.min(lastYear, Math.max(firstYear, currentYear));
+const initialMonth = today.getMonth() + 1;
+const flags = buildDayFlags(data);
+
+const progress = getYearProgress(today, initialYear);
+const wageRows = getWageRows(today, flags);
+const holidayRows = getHolidayRows(today, data);
+const holidayStats = getHolidayStats(initialYear, data, today);
+---
+
+<div
+  class="holiday-calendar"
+  data-holiday-calendar
+  data-year={initialYear}
+  data-year-first={firstYear}
+  data-year-last={lastYear}
+  data-current-year={currentYear}
+>
+  <section class="hc-panel" aria-labelledby="hc-progress-title">
+    <div class="hc-panel-head">
+      <h2 id="hc-progress-title">年度进度</h2>
+      <span class="hc-panel-meta mono"><span data-progress-year>{initialYear}</span> 年度进度</span>
+    </div>
+    <div data-progress-output set:html={renderProgress(progress)} />
+  </section>
+
+  <section class="hc-panel" aria-labelledby="hc-calendar-title">
+    <div class="hc-panel-head">
+      <h2 id="hc-calendar-title">月历</h2>
+      <div class="hc-panel-controls">
+        <div class="hc-view-switch" role="group" aria-label="切换视图" data-view-switch hidden>
+          <button type="button" class="hc-view-button" data-view="year" aria-pressed="true">全年</button>
+          <button type="button" class="hc-view-button" data-view="month" aria-pressed="false">当月</button>
+        </div>
+        <div class="hc-year-nav" role="group" aria-label="切换年份" data-year-nav hidden>
+          <button type="button" class="hc-year-button" data-year-prev aria-label="上一年">←</button>
+          <output class="hc-year-output mono" data-year-output>{initialYear} 年</output>
+          <button type="button" class="hc-year-button" data-year-next aria-label="下一年">→</button>
+          <button type="button" class="hc-year-reset mono" data-year-reset hidden>回到今年</button>
+        </div>
+      </div>
+    </div>
+    <p class="hc-legend">
+      <span><span class="hc-legend-flag is-holiday" aria-hidden="true">休</span>法定假期</span>
+      <span><span class="hc-legend-flag is-work" aria-hidden="true">班</span>调休上班</span>
+      <span><span class="hc-legend-today" aria-hidden="true"></span>今天</span>
+      <span class="hc-legend-note">{firstYear}–{lastYear} 年安排来自国务院办公厅公告</span>
+    </p>
+    <div class="hc-months" data-months-year data-year={initialYear} set:html={renderMonths(initialYear, flags)} />
+    <div class="hc-months is-month" data-months-month data-year={initialYear} data-month={initialMonth} hidden />
+  </section>
+
+  <div class="hc-columns">
+    <section class="hc-panel" aria-labelledby="hc-wage-title">
+      <div class="hc-panel-head">
+        <h2 id="hc-wage-title">发薪倒计时</h2>
+        <span class="hc-panel-meta mono">发薪日</span>
+      </div>
+      <div class="hc-pay-settings" data-pay-settings></div>
+      <div data-wage-output set:html={renderWageRows(wageRows)} />
+    </section>
+
+    <section class="hc-panel" aria-labelledby="hc-holiday-title">
+      <div class="hc-panel-head">
+        <h2 id="hc-holiday-title">假期倒计时</h2>
+        <span class="hc-panel-meta mono">法定假期</span>
+      </div>
+      <div data-holiday-output set:html={renderHolidayRows(holidayRows)} />
+    </section>
+  </div>
+
+  <section class="hc-panel" aria-labelledby="hc-stats-title">
+    <div class="hc-panel-head">
+      <h2 id="hc-stats-title">假期统计</h2>
+      <span class="hc-panel-meta mono"><span data-stats-year>{initialYear}</span> 年安排</span>
+    </div>
+    <div data-stats-output set:html={renderHolidayStats(holidayStats)} />
+  </section>
+</div>
+
+<style is:global>
+  .holiday-calendar {
+    --hc-holiday-strong: #b3261e;
+    --hc-holiday-on: #ffffff;
+    --hc-holiday-bg: rgba(179, 38, 30, 0.1);
+    --hc-work-strong: #1b4fa8;
+    --hc-work-on: #ffffff;
+    --hc-work-bg: rgba(27, 79, 168, 0.1);
+    display: grid;
+    gap: 16px;
+  }
+  :root[data-theme='dark'] .holiday-calendar {
+    --hc-holiday-strong: #f2b8b5;
+    --hc-holiday-on: #3b0907;
+    --hc-holiday-bg: rgba(242, 184, 181, 0.14);
+    --hc-work-strong: #a8c7fa;
+    --hc-work-on: #062e6f;
+    --hc-work-bg: rgba(168, 199, 250, 0.14);
+  }
+  .holiday-calendar .hc-panel {
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--surface);
+    padding: 17px 18px 19px;
+  }
+  .holiday-calendar .hc-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .holiday-calendar .hc-panel-head h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 560;
+    letter-spacing: 0.2px;
+  }
+  .holiday-calendar .hc-panel-meta {
+    font-size: 9px;
+    letter-spacing: 1.4px;
+    color: var(--muted);
+  }
+
+  /* 进度条 */
+  .holiday-calendar .hc-bar {
+    display: block;
+    position: relative;
+    height: 6px;
+    border-radius: 99px;
+    background: var(--surface-hover);
+    overflow: hidden;
+  }
+  .holiday-calendar .hc-bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
+    transition: width 0.45s ease;
+  }
+  .holiday-calendar .hc-progress-text {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 11px 0 0;
+    font: 10px var(--mono);
+    color: var(--muted);
+  }
+  .holiday-calendar .hc-progress-text strong {
+    font-size: 19px;
+    font-weight: 560;
+    color: var(--heading);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 年份 / 视图切换 */
+  .holiday-calendar .hc-panel-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .holiday-calendar .hc-view-switch {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .holiday-calendar .hc-view-switch[hidden] {
+    display: none;
+  }
+  .holiday-calendar .hc-view-button {
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font: 9px var(--mono);
+    letter-spacing: 0.4px;
+    padding: 4px 9px;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+  }
+  .holiday-calendar .hc-view-button:hover {
+    color: var(--accent-strong);
+  }
+  .holiday-calendar .hc-view-button[aria-pressed='true'] {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+  }
+  .holiday-calendar .hc-year-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .holiday-calendar .hc-year-nav[hidden] {
+    display: none;
+  }
+  .holiday-calendar .hc-year-button,
+  .holiday-calendar .hc-year-reset {
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+  }
+  .holiday-calendar .hc-year-button {
+    width: 25px;
+    height: 25px;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+  }
+  .holiday-calendar .hc-year-reset {
+    padding: 4px 9px;
+    font-size: 9px;
+    letter-spacing: 0.4px;
+  }
+  .holiday-calendar .hc-year-button:hover:not(:disabled),
+  .holiday-calendar .hc-year-reset:hover {
+    color: var(--accent-strong);
+    border-color: var(--line-strong);
+    background: var(--accent-soft);
+  }
+  .holiday-calendar .hc-year-button:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .holiday-calendar .hc-year-output {
+    min-width: 4.6em;
+    text-align: center;
+    font-size: 11px;
+    color: var(--heading);
+  }
+
+  /* 图例 */
+  .holiday-calendar .hc-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin: 0 0 14px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .holiday-calendar .hc-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .holiday-calendar .hc-legend-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    font-size: 8px;
+    line-height: 1;
+    color: #fff;
+  }
+  .holiday-calendar .hc-legend-flag.is-holiday {
+    background: var(--hc-holiday-strong);
+    color: var(--hc-holiday-on);
+  }
+  .holiday-calendar .hc-legend-flag.is-work {
+    background: var(--hc-work-strong);
+    color: var(--hc-work-on);
+  }
+  .holiday-calendar .hc-legend-today {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .holiday-calendar .hc-legend-note {
+    margin-left: auto;
+    font: 9px var(--mono);
+    color: var(--muted);
+  }
+
+  /* 月历容器 */
+  .holiday-calendar .hc-months[hidden] {
+    display: none;
+  }
+  .holiday-calendar .hc-months {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr));
+    gap: 10px;
+  }
+  .holiday-calendar .hc-month {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 8px 11px;
+    min-width: 0;
+  }
+  .holiday-calendar .hc-month-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .holiday-calendar .hc-month-name {
+    margin: 0;
+    font: 500 11px var(--mono);
+    letter-spacing: 0.6px;
+    color: var(--heading);
+  }
+  .holiday-calendar .hc-month-tags {
+    font-size: 9px;
+    color: var(--accent-strong);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .holiday-calendar .hc-weekdays,
+  .holiday-calendar .hc-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+  .holiday-calendar .hc-weekdays {
+    margin-bottom: 3px;
+  }
+  .holiday-calendar .hc-weekdays span {
+    text-align: center;
+    font: 9px var(--mono);
+    color: var(--muted);
+  }
+  .holiday-calendar .hc-weekdays span.is-weekend {
+    color: var(--accent-strong);
+  }
+  .holiday-calendar .hc-days {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 2px;
+  }
+  .holiday-calendar .hc-day {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 33px;
+    border-radius: 4px;
+  }
+  .holiday-calendar .hc-day time {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.25;
+    max-width: 100%;
+  }
+  .holiday-calendar .hc-day-num {
+    font-size: 11px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .holiday-calendar .hc-day.is-weekend .hc-day-num {
+    color: var(--muted);
+  }
+  .holiday-calendar .hc-day-lunar {
+    max-width: 100%;
+    padding: 0 1px;
+    font-size: 8px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .holiday-calendar .hc-day-note {
+    display: none;
+  }
+  .holiday-calendar .hc-day.is-holiday {
+    background: var(--hc-holiday-bg);
+  }
+  .holiday-calendar .hc-day.is-holiday .hc-day-num,
+  .holiday-calendar .hc-day.is-holiday .hc-day-lunar,
+  .holiday-calendar .hc-day.is-holiday .hc-day-note {
+    color: var(--hc-holiday-strong);
+  }
+  .holiday-calendar .hc-day.is-work {
+    background: var(--hc-work-bg);
+  }
+  .holiday-calendar .hc-day.is-work .hc-day-num,
+  .holiday-calendar .hc-day.is-work .hc-day-lunar,
+  .holiday-calendar .hc-day.is-work .hc-day-note {
+    color: var(--hc-work-strong);
+  }
+  .holiday-calendar .hc-day.is-today {
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .holiday-calendar .hc-day.is-today .hc-day-num,
+  .holiday-calendar .hc-day.is-today .hc-day-lunar,
+  .holiday-calendar .hc-day.is-today .hc-day-note {
+    color: var(--accent-strong);
+  }
+  .holiday-calendar .hc-day.is-today .hc-day-num {
+    font-weight: 620;
+  }
+  .holiday-calendar .hc-day-flag {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    padding: 0 2px;
+    border-radius: 3px;
+    font-size: 7.5px;
+    line-height: 1.5;
+    background: var(--hc-holiday-strong);
+    color: var(--hc-holiday-on);
+  }
+  .holiday-calendar .hc-day.is-work .hc-day-flag {
+    background: var(--hc-work-strong);
+    color: var(--hc-work-on);
+  }
+
+  /* 当月视图：把一个月放大，多显示一行农历与节日 */
+  .holiday-calendar .hc-months.is-month {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .holiday-calendar .hc-months.is-month .hc-month {
+    padding: 15px 13px 16px;
+  }
+  .holiday-calendar .hc-months.is-month .hc-month-name {
+    font-size: 12px;
+  }
+  .holiday-calendar .hc-months.is-month .hc-month-tags {
+    font-size: 10px;
+  }
+  .holiday-calendar .hc-months.is-month .hc-weekdays span {
+    font-size: 10px;
+  }
+  .holiday-calendar .hc-months.is-month .hc-days {
+    gap: 4px;
+  }
+  .holiday-calendar .hc-months.is-month .hc-day {
+    min-height: 64px;
+    padding: 6px 3px 7px;
+    border-radius: 5px;
+  }
+  .holiday-calendar .hc-months.is-month .hc-day-num {
+    font-size: 15px;
+  }
+  .holiday-calendar .hc-months.is-month .hc-day-lunar {
+    font-size: 10px;
+  }
+  .holiday-calendar .hc-months.is-month .hc-day-note {
+    display: block;
+    font-size: 8.5px;
+    line-height: 1.5;
+    color: var(--muted);
+    text-align: center;
+  }
+  .holiday-calendar .hc-months.is-month .hc-day.is-holiday .hc-day-note {
+    color: var(--hc-holiday-strong);
+  }
+  .holiday-calendar .hc-months.is-month .hc-day.is-work .hc-day-note {
+    color: var(--hc-work-strong);
+  }
+  .holiday-calendar .hc-months.is-month .hc-day-flag {
+    top: 3px;
+    right: 3px;
+    font-size: 8px;
+    padding: 0 3px;
+  }
+
+  /* 发薪日设置 */
+  .holiday-calendar .hc-pay-settings {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 13px;
+  }
+  .holiday-calendar .hc-pay-settings:empty {
+    display: none;
+  }
+  .holiday-calendar .hc-pay-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .holiday-calendar .hc-pay-chip,
+  .holiday-calendar .hc-pay-button {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--muted);
+    font: 9px var(--mono);
+    padding: 3px 7px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+  }
+  .holiday-calendar .hc-pay-chip {
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    border-color: transparent;
+  }
+  .holiday-calendar .hc-pay-chip:hover {
+    border-color: var(--accent);
+  }
+  .holiday-calendar .hc-pay-button:hover {
+    color: var(--accent-strong);
+    border-color: var(--line-strong);
+    background: var(--accent-soft);
+  }
+  .holiday-calendar .hc-pay-button.is-primary {
+    color: var(--accent-strong);
+    border-color: var(--line-strong);
+  }
+  .holiday-calendar .hc-pay-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    font: 9.5px var(--mono);
+    color: var(--muted);
+  }
+  .holiday-calendar .hc-pay-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .holiday-calendar .hc-pay-input {
+    width: 4.2em;
+    padding: 3px 4px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text);
+    font: 10px var(--mono);
+    text-align: center;
+  }
+  .holiday-calendar .hc-pay-input:focus-visible {
+    outline-offset: 2px;
+  }
+
+  /* 倒计时列表 */
+  .holiday-calendar .hc-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+    gap: 16px;
+  }
+  .holiday-calendar .hc-rows {
+    list-style: none;
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+  }
+  .holiday-calendar .hc-row {
+    display: grid;
+    grid-template-columns: minmax(3.4em, auto) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .holiday-calendar .hc-row-label {
+    font-size: 11px;
+    color: var(--heading);
+    white-space: nowrap;
+  }
+  .holiday-calendar .hc-row .hc-bar {
+    height: 5px;
+  }
+  .holiday-calendar .hc-row-info {
+    font: 9.5px var(--mono);
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .holiday-calendar .hc-row.is-today .hc-row-label,
+  .holiday-calendar .hc-row.is-today .hc-row-info,
+  .holiday-calendar .hc-row.is-ongoing .hc-row-label {
+    color: var(--accent-strong);
+  }
+  .holiday-calendar .hc-row.is-ongoing .hc-row-info {
+    color: var(--accent-strong);
+  }
+  .holiday-calendar .hc-row.is-past .hc-row-label,
+  .holiday-calendar .hc-row.is-past .hc-row-info {
+    color: var(--muted);
+  }
+  .holiday-calendar .hc-row.is-past .hc-bar-fill {
+    opacity: 0.5;
+  }
+  .holiday-calendar .hc-empty {
+    margin: 0;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* 假期统计：三个汇总数字 + 每个假期一行的明细 */
+  .holiday-calendar .hc-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+    gap: 8px;
+    margin: 0 0 13px;
+  }
+  .holiday-calendar .hc-stat {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 3px 6px;
+    padding: 9px 12px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface-soft);
+  }
+  .holiday-calendar .hc-stat strong {
+    font-size: 19px;
+    font-weight: 560;
+    color: var(--heading);
+    font-variant-numeric: tabular-nums;
+  }
+  .holiday-calendar .hc-stat > span {
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .holiday-calendar .hc-stat.is-holiday strong {
+    color: var(--hc-holiday-strong);
+  }
+  .holiday-calendar .hc-stat.is-comp strong {
+    color: var(--hc-work-strong);
+  }
+  .holiday-calendar .hc-row-sub {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font: 9.5px var(--mono);
+    color: var(--hc-work-strong);
+  }
+  .holiday-calendar .hc-comp-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    font-size: 8px;
+    line-height: 1;
+    background: var(--hc-work-strong);
+    color: var(--hc-work-on);
+  }
+
+  @media (max-width: 30rem) {
+    .holiday-calendar .hc-panel {
+      padding: 14px 13px 16px;
+    }
+    /* 窄屏的当月视图：收紧内边距，让农历一行放得下 */
+    .holiday-calendar .hc-months.is-month .hc-month {
+      padding: 12px 6px 13px;
+    }
+    .holiday-calendar .hc-months.is-month .hc-day {
+      padding: 5px 0 6px;
+    }
+    .holiday-calendar .hc-months.is-month .hc-day-lunar {
+      font-size: 9px;
+    }
+    .holiday-calendar .hc-months.is-month .hc-day-note {
+      font-size: 7.5px;
+    }
+    /* 一周节日名在上面的短标签里已经出现过，窄屏不再重复。 */
+    .holiday-calendar .hc-months.is-month .hc-day-note-extra {
+      display: none;
+    }
+    .holiday-calendar .hc-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: 'label info' 'bar bar';
+      row-gap: 4px;
+    }
+    .holiday-calendar .hc-row-label {
+      grid-area: label;
+    }
+    .holiday-calendar .hc-row-info {
+      grid-area: info;
+      text-align: right;
+    }
+    .holiday-calendar .hc-row .hc-bar {
+      grid-area: bar;
+    }
+    .holiday-calendar .hc-row-sub {
+      grid-column: 1 / -1;
+    }
+    .holiday-calendar .hc-stat strong {
+      font-size: 17px;
+    }
+    .holiday-calendar .hc-legend-note {
+      margin-left: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .holiday-calendar .hc-bar-fill {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  import holidaysData from '../data/holidays.json';
+  import {
+    DEFAULT_PAY_SPEC,
+    buildDayFlags,
+    dataYears,
+    getHolidayRows,
+    getHolidayStats,
+    getWageRows,
+    getYearProgress,
+    normalizePaySpec,
+    toYmd,
+    type HolidayData,
+    type PaySpec,
+  } from '../lib/holidays';
+  import { renderHolidayRows, renderHolidayStats, renderPaySettings, renderProgress, renderWageRows } from '../lib/calendar-view';
+
+  type CalendarRenderer = typeof import('../lib/lunar-calendar');
+  type CalendarView = 'year' | 'month';
+
+  const data = holidaysData as HolidayData;
+  const PAY_SPEC_KEY = 'mori.year-calendar.paydays';
+  const VIEW_KEY = 'mori.year-calendar.view';
+
+  function readPaySpec(): PaySpec {
+    try {
+      const raw = localStorage.getItem(PAY_SPEC_KEY);
+      return raw ? normalizePaySpec(JSON.parse(raw)) : { ...DEFAULT_PAY_SPEC };
+    } catch {
+      return { ...DEFAULT_PAY_SPEC };
+    }
+  }
+
+  function savePaySpec(spec: PaySpec) {
+    try {
+      localStorage.setItem(PAY_SPEC_KEY, JSON.stringify(spec));
+    } catch {
+      // 无痕模式等场景下写不进去也不影响使用。
+    }
+  }
+
+  function readView(): CalendarView {
+    try {
+      return localStorage.getItem(VIEW_KEY) === 'month' ? 'month' : 'year';
+    } catch {
+      return 'year';
+    }
+  }
+
+  async function setup(root: HTMLElement) {
+    const years = dataYears(data);
+    const firstYear = years[0];
+    const lastYear = years[years.length - 1];
+    if (firstYear === undefined || lastYear === undefined) return;
+
+    const yearEl = root.querySelector<HTMLElement>('[data-months-year]');
+    const monthEl = root.querySelector<HTMLElement>('[data-months-month]');
+    const monthNavEl = root.querySelector<HTMLElement>('[data-year-nav]');
+    const switchEl = root.querySelector<HTMLElement>('[data-view-switch]');
+    const yearOutput = root.querySelector<HTMLOutputElement>('[data-year-output]');
+    const prevButton = root.querySelector<HTMLButtonElement>('[data-year-prev]');
+    const nextButton = root.querySelector<HTMLButtonElement>('[data-year-next]');
+    const resetButton = root.querySelector<HTMLButtonElement>('[data-year-reset]');
+    const progressEl = root.querySelector<HTMLElement>('[data-progress-output]');
+    const progressYearEl = root.querySelector<HTMLElement>('[data-progress-year]');
+    const settingsEl = root.querySelector<HTMLElement>('[data-pay-settings]');
+    const wageEl = root.querySelector<HTMLElement>('[data-wage-output]');
+    const holidayEl = root.querySelector<HTMLElement>('[data-holiday-output]');
+    const statsEl = root.querySelector<HTMLElement>('[data-stats-output]');
+    const statsYearEl = root.querySelector<HTMLElement>('[data-stats-year]');
+    if (!yearEl || !monthEl || !monthNavEl || !switchEl || !yearOutput || !prevButton || !nextButton || !resetButton || !progressEl || !progressYearEl || !settingsEl || !wageEl || !holidayEl || !statsEl || !statsYearEl) return;
+
+    const flags = buildDayFlags(data);
+    const clampYear = (value: number) => Math.min(lastYear, Math.max(firstYear, value));
+    const nowParts = () => {
+      const now = new Date();
+      return { year: now.getFullYear(), month: now.getMonth() + 1 };
+    };
+    let view: CalendarView = readView();
+    let year = clampYear(Number(root.dataset.year) || nowParts().year);
+    let month = Number(root.dataset.month) || nowParts().month;
+    let loadRenderer: Promise<CalendarRenderer> | null = null;
+    let paySpec = readPaySpec();
+
+    // dev 里动态 import 偶发失败（如 Outdated Optimize Dep），需要整页 reload 才能恢复，
+    // 这里自动重试：瞬时错误直接重试，疑似 deps 过期时强刷页面。
+    const loadRendererWithRecover = (): Promise<CalendarRenderer> => {
+      const load = async (): Promise<CalendarRenderer> => {
+        try {
+          return await import('../lib/lunar-calendar');
+        } catch (error) {
+          loadRenderer = null;
+          const message = error instanceof Error ? error.message : String(error);
+          if (/Outdated Optimize Dep|i\.sjs/.test(message)) {
+            localStorage.setItem('mori.year-calendar.autoreload', '1');
+            window.location.reload();
+          }
+          throw error;
+        }
+      };
+      return (loadRenderer ??= load());
+    };
+
+    const applyToday = () => {
+      const ymd = toYmd(new Date());
+      for (const cell of root.querySelectorAll('.hc-day.is-today')) {
+        cell.classList.remove('is-today');
+        cell.removeAttribute('aria-current');
+      }
+      // 两个容器都在 DOM 里，只标记当前视图的那个。
+      const active = view === 'month' ? monthEl : yearEl;
+      const cell = active.querySelector(`.hc-day[data-date="${ymd}"]`);
+      if (cell) {
+        cell.classList.add('is-today');
+        cell.setAttribute('aria-current', 'date');
+      }
+    };
+
+    // 构建时渲染的首屏可能已经过期，这里按访问时的真实日期刷新。
+    const refreshLive = () => {
+      const today = new Date();
+      progressEl.innerHTML = renderProgress(getYearProgress(today, year));
+      progressYearEl.textContent = String(year);
+      wageEl.innerHTML = renderWageRows(getWageRows(today, flags, paySpec));
+      holidayEl.innerHTML = renderHolidayRows(getHolidayRows(today, data));
+      statsEl.innerHTML = renderHolidayStats(getHolidayStats(year, data, today));
+      statsYearEl.textContent = String(year);
+      applyToday();
+    };
+
+    const renderPaySettingsTo = (focusInput = false, value = currentInputValue()) => {
+      settingsEl.innerHTML = renderPaySettings(paySpec, value);
+      if (focusInput) settingsEl.querySelector<HTMLInputElement>('[data-pay-input]')?.focus();
+    };
+
+    const currentInputValue = () => settingsEl.querySelector<HTMLInputElement>('[data-pay-input]')?.value ?? '10';
+
+    const updatePaySpec = (next: PaySpec) => {
+      paySpec = normalizePaySpec(next);
+      savePaySpec(paySpec);
+      renderPaySettingsTo();
+      wageEl.innerHTML = renderWageRows(getWageRows(new Date(), flags, paySpec));
+    };
+
+    settingsEl.addEventListener('click', (event) => {
+      const target = (event.target as HTMLElement).closest<HTMLElement>('[data-pay-remove], [data-pay-last], [data-pay-last-remove]');
+      if (!target) return;
+      const day = target.dataset.payRemove;
+      if (day) {
+        updatePaySpec({ ...paySpec, days: paySpec.days.filter((item) => item !== Number(day)) });
+      } else if (target.dataset.payLast !== undefined) {
+        updatePaySpec({ ...paySpec, lastWorkDay: true });
+      } else {
+        updatePaySpec({ ...paySpec, lastWorkDay: false });
+      }
+    });
+
+    settingsEl.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const input = settingsEl.querySelector<HTMLInputElement>('[data-pay-input]');
+      const raw = Number(input?.value);
+      if (!Number.isFinite(raw) || raw < 1) return;
+      const day = Math.min(31, Math.round(raw));
+      updatePaySpec({ ...paySpec, days: [...paySpec.days, day] });
+      renderPaySettingsTo(true);
+    });
+
+    const syncNav = () => {
+      const now = nowParts();
+      const targetYear = clampYear(now.year);
+      const atNow = view === 'year' ? year === targetYear : year === targetYear && month === now.month;
+      const monthIndex = year * 12 + (month - 1);
+
+      yearOutput.textContent = view === 'year' ? `${year} 年` : `${year} 年 ${month} 月`;
+      prevButton.disabled = view === 'year' ? year <= firstYear : monthIndex <= firstYear * 12;
+      nextButton.disabled = view === 'year' ? year >= lastYear : monthIndex >= lastYear * 12 + 11;
+      prevButton.setAttribute('aria-label', view === 'year' ? '上一年' : '上一月');
+      nextButton.setAttribute('aria-label', view === 'year' ? '下一年' : '下一月');
+      resetButton.hidden = atNow;
+      resetButton.textContent = view === 'year' ? '回到今年' : '回到本月';
+      monthNavEl.setAttribute('aria-label', view === 'year' ? '切换年份' : '切换月份');
+
+      for (const button of root.querySelectorAll<HTMLButtonElement>('[data-view]')) {
+        button.setAttribute('aria-pressed', String(button.dataset.view === view));
+      }
+    };
+
+    // 全年视图的首屏是构建时渲染的，只有真正需要时才拉取农历库。
+    const showPanels = async () => {
+      if (view === 'year') {
+        monthEl.hidden = true;
+        yearEl.hidden = false;
+        if (yearEl.dataset.year !== String(year)) {
+          const { renderMonths } = await loadRendererWithRecover();
+          yearEl.innerHTML = renderMonths(year, flags);
+          yearEl.dataset.year = String(year);
+        }
+      } else {
+        yearEl.hidden = true;
+        monthEl.hidden = false;
+        const { renderMonthView } = await loadRendererWithRecover();
+        monthEl.innerHTML = renderMonthView(year, month, flags);
+      }
+      syncNav();
+      refreshLive();
+    };
+
+    const step = async (delta: number) => {
+      if (view === 'year') {
+        year = clampYear(year + delta);
+      } else {
+        const index = Math.min(lastYear * 12 + 11, Math.max(firstYear * 12, year * 12 + (month - 1) + delta));
+        year = Math.floor(index / 12);
+        month = (index % 12) + 1;
+      }
+      await showPanels();
+    };
+
+    const setView = (next: CalendarView) => {
+      if (next === view) return;
+      view = next;
+      try {
+        localStorage.setItem(VIEW_KEY, view);
+      } catch {
+        // 无痕模式等场景下写不进去也不影响使用。
+      }
+      void showPanels();
+    };
+
+    prevButton.addEventListener('click', () => void step(-1));
+    nextButton.addEventListener('click', () => void step(1));
+    resetButton.addEventListener('click', () => {
+      const now = nowParts();
+      year = clampYear(now.year);
+      if (view === 'month') month = now.month;
+      void showPanels();
+    });
+    for (const button of root.querySelectorAll<HTMLButtonElement>('[data-view]')) {
+      button.addEventListener('click', () => setView(button.dataset.view === 'month' ? 'month' : 'year'));
+    }
+
+    switchEl.hidden = false;
+    monthNavEl.hidden = false;
+    syncNav();
+    renderPaySettingsTo();
+    await showPanels();
+  }
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-holiday-calendar]')) {
+    setup(root).catch((error: unknown) => console.error('[holiday-calendar]', error));
+  }
+</script>

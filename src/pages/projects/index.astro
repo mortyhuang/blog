@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+import Icon from '../../components/Icon.astro';
+import { projects } from '../../data/projects';
+---
+<BaseLayout title="作品" description="把想法做成可以直接体验的作品。" wide>
+  <div class="page-intro projects-intro">
+    <h1>作品<span class="title-dot">.</span></h1>
+    <span class="page-count" hidden></span>
+  </div>
+  {projects.length > 0 ? <section aria-label="作品列表">
+    <div class="projects-grid">{projects.map((project) => <ProjectCard project={project} />)}</div>
+  </section> : <section class="filter-empty"><Icon name="terminal" size={32} /><h2>第一件作品正在路上</h2><p>这里会放一些作品，欢迎之后再来看看。</p><a href="/posts/" class="button button-primary">先读一些文章 <Icon name="arrow" size={16} /></a></section>}
+</BaseLayout>

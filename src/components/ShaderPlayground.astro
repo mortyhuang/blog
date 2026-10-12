@@ -1,0 +1,39 @@
+---
+---
+<div class="shader-playground">
+  <div class="playground-top"><span><span class="status-dot"></span> 噪声地形实验</span><span class="mono">01</span></div>
+  <canvas class="terrain-canvas" width="720" height="300" aria-label="根据频率与振幅生成的地形曲线"></canvas>
+  <div class="playground-controls">
+    <label>频率 <input data-frequency type="range" min="1" max="8" step=".1" value="3" /><output data-frequency-output>3.0</output></label>
+    <label>振幅 <input data-amplitude type="range" min="10" max="75" step="1" value="42" /><output data-amplitude-output>42</output></label>
+  </div>
+  <p class="playground-caption">拖动滑块，观察参数如何改变一片风景。</p>
+</div>
+<script>
+  document.querySelectorAll<HTMLElement>('.shader-playground').forEach((playground) => {
+    const canvas = playground.querySelector<HTMLCanvasElement>('canvas');
+    const context = canvas?.getContext('2d');
+    const frequency = playground.querySelector<HTMLInputElement>('[data-frequency]');
+    const amplitude = playground.querySelector<HTMLInputElement>('[data-amplitude]');
+    if (!canvas || !context || !frequency || !amplitude) return;
+    const draw = () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      context.fillStyle = dark ? '#1a2820' : '#e1eada'; context.fillRect(0, 0, 720, 300);
+      context.fillStyle = dark ? '#52764e' : '#eef0cb'; context.beginPath(); context.arc(513, 78, 39, 0, Math.PI * 2); context.fill();
+      const freq = Number(frequency.value), amp = Number(amplitude.value);
+      for (let j = 0; j < 44; j++) {
+        context.beginPath();
+        for (let x = 0; x <= 720; x += 3) {
+          const envelope = Math.exp(-Math.pow((x - 430) / 210, 2));
+          const noise = Math.sin(x * freq * .006 + j * .09) * .65 + Math.sin(x * freq * .012 - j * .05) * .35;
+          const y = 90 + j * 5 - envelope * noise * amp - envelope * amp * Math.sin(j / 44 * Math.PI);
+          x ? context.lineTo(x, y) : context.moveTo(x, y);
+        }
+        context.strokeStyle = dark ? `rgba(164, 199, 147, ${.15 + j / 80})` : `rgba(71, 109, 63, ${.15 + j / 80})`; context.lineWidth = .8; context.stroke();
+      }
+      const fOut = playground.querySelector('output[data-frequency-output]'); if (fOut) fOut.textContent = freq.toFixed(1);
+      const aOut = playground.querySelector('output[data-amplitude-output]'); if (aOut) aOut.textContent = String(amp);
+    };
+    frequency.addEventListener('input', draw); amplitude.addEventListener('input', draw); window.addEventListener('themechange', draw); draw();
+  });
+</script>

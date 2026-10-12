@@ -1,0 +1,84 @@
+---
+import { knotCurves, curvePath } from '../lib/knot';
+import Icon from './Icon.astro';
+const curves = knotCurves();
+---
+<div class="generative-art" id="generative-art">
+  <div class="art-eyebrow"><span class="status-dot"></span> 创意编程 <span class="art-coordinate">Fig. 001</span></div>
+  <div class="art-canvas-wrap">
+    <svg class="art-guides" viewBox="0 0 480 380" role="img" aria-label="由绿色线条构成的三维三叶结，象征不断探索的灵感">
+      <defs><radialGradient id="art-halo"><stop offset="0" stop-color="currentColor" stop-opacity=".12" /><stop offset="1" stop-color="currentColor" stop-opacity="0" /></radialGradient></defs>
+      <circle cx="240" cy="185" r="185" fill="url(#art-halo)" />
+      <g fill="none" stroke="currentColor" stroke-width=".6" opacity=".15">
+        <circle cx="240" cy="185" r="161" /><circle cx="240" cy="185" r="174" stroke-dasharray="2 8" />
+        <path d="M240 0v380M15 185h450" stroke-dasharray="3 7" />
+        <path d="M54 28h10m-5-5v10M420 340h10m-5-5v10" />
+      </g>
+      <g class="static-knot" fill="none" stroke="currentColor" stroke-width=".7">
+        {curves.map((curve) => <path d={curvePath(curve)} opacity={Math.max(.14, Math.min(.7, .42 - curve.depth * .2))} />)}
+      </g>
+      <g fill="currentColor"><circle cx="240" cy="24" r="2.5" /><circle cx="80" cy="185" r="2.5" /><circle cx="401" cy="185" r="2.5" /></g>
+      <text x="253" y="30" class="art-svg-label" fill="currentColor" opacity=".45">∞</text>
+    </svg>
+    <canvas id="knot-canvas" width="480" height="380" aria-hidden="true"></canvas>
+  </div>
+  <div class="art-footer"><span>好奇心，没有终点。</span><button class="art-pause" data-art-pause aria-label="暂停图形动画" title="暂停图形动画"><Icon name="pause" size={13} /><span>LIVE</span></button></div>
+</div>
+<script>
+  import { knotCurves } from '../lib/knot';
+  const art = document.querySelector<HTMLElement>('#generative-art');
+  const canvas = document.querySelector<HTMLCanvasElement>('#knot-canvas');
+  const context = canvas?.getContext('2d');
+  const button = document.querySelector<HTMLButtonElement>('[data-art-pause]');
+  if (art && canvas && context && button) {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let paused = reduced.matches, visible = true, frame = 0, time = 0, last = 0, tilt = 0, targetTilt = 0;
+    const resize = () => {
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = 480 * ratio; canvas.height = 380 * ratio;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    };
+    resize();
+    const updateButton = () => {
+      button.setAttribute('aria-label', paused ? '播放图形动画' : '暂停图形动画');
+      button.setAttribute('title', paused ? '播放图形动画' : '暂停图形动画');
+      button.setAttribute('aria-pressed', String(paused));
+      const path = button.querySelector('path');
+      path?.setAttribute('d', paused ? 'm8 4 12 8-12 8V4Z' : 'M9 5v14M15 5v14');
+      const label = button.querySelector('span');
+      if (label) label.textContent = paused ? 'PAUSED' : 'LIVE';
+    };
+    const draw = () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      context.clearRect(0, 0, 480, 380);
+      for (const curve of knotCurves(time, tilt)) {
+        context.beginPath();
+        curve.points.forEach(([x, y], i) => i ? context.lineTo(x, y) : context.moveTo(x, y));
+        context.lineWidth = .72;
+        context.strokeStyle = `rgba(${dark ? '131, 196, 157' : '54, 113, 79'}, ${Math.max(.14, Math.min(.78, .42 - curve.depth * .2))})`;
+        context.stroke();
+      }
+      art.classList.add('is-rendered');
+    };
+    const tick = (now: number) => {
+      if (!paused && visible && !document.hidden) {
+        if (now - last >= 40) {
+          time += .032; tilt += (targetTilt - tilt) * .035;
+          draw(); last = now;
+        }
+        frame = requestAnimationFrame(tick);
+      } else frame = 0;
+    };
+    const start = () => { if (!frame && !paused && visible && !document.hidden) frame = requestAnimationFrame(tick); };
+    button.addEventListener('click', () => { paused = !paused; updateButton(); start(); });
+    art.addEventListener('pointermove', (event) => { const rect = art.getBoundingClientRect(); targetTilt = (event.clientY - rect.top - rect.height / 2) / rect.height * .3; });
+    art.addEventListener('pointerleave', () => { targetTilt = 0; });
+    const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; start(); }, { threshold: .05 });
+    observer.observe(art);
+    document.addEventListener('visibilitychange', start);
+    window.addEventListener('themechange', draw);
+    window.addEventListener('resize', () => { resize(); draw(); });
+    reduced.addEventListener('change', () => { paused = reduced.matches; updateButton(); start(); });
+    updateButton(); draw(); start();
+  }
+</script>

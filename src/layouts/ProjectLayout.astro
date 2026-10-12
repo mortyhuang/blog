@@ -1,0 +1,19 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Icon from '../components/Icon.astro';
+import type { Project } from '../data/projects';
+interface Props { project: Project }
+const { project } = Astro.props;
+---
+<BaseLayout title={project.title} description={project.description}>
+  <article class="project-detail">
+    <header>
+      <a class="back-link" href="/projects/"><Icon name="back" size={15} /> 回到作品</a>
+      <h1>{project.title}<span class="title-dot">.</span></h1>
+      <p class="project-detail-lead">{project.description}</p>
+    </header>
+    <div class="project-stage"><slot /></div>
+    <section class="prose project-details"><slot name="details" /></section>
+    <a class="all-posts-link" href="/projects/">探索其他作品 <Icon name="arrow" size={16} /></a>
+  </article>
+</BaseLayout>

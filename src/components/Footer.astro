@@ -1,0 +1,14 @@
+---
+import Logo from './Logo.astro';
+import { site } from '../config';
+---
+<footer class="site-footer container">
+  <div class="footer-inner">
+    <div class="footer-left">
+      <Logo small />
+    </div>
+    <div class="footer-right">
+      <span class="footer-copy">© {site.since}–{new Date().getUTCFullYear()}</span>
+    </div>
+  </div>
+</footer>

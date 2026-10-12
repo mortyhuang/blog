@@ -1,0 +1,51 @@
+---
+import { render } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CoverArt from '../../components/CoverArt.astro';
+import Icon from '../../components/Icon.astro';
+import { getPosts, type Post, postUrl, formatDate, readingTime } from '../../lib/posts';
+import { site } from '../../config';
+export const getStaticPaths = (async () => {
+  return (await getPosts()).map((post) => ({ params: { id: post.id }, props: { post } }));
+}) satisfies GetStaticPaths;
+interface Props { post: Post }
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
+const toc = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+const structuredData = {
+  '@context': 'https://schema.org', '@type': 'BlogPosting', headline: post.data.title,
+  description: post.data.description, datePublished: post.data.date.toISOString(),
+  author: { '@type': 'Person', name: site.author }, url: new URL(postUrl(post), Astro.site).href,
+};
+---
+<BaseLayout title={post.data.title} description={post.data.description} type="article" date={post.data.date}>
+  <script type="application/ld+json" set:html={JSON.stringify(structuredData).replace(/</g, '\\u003c')} />
+  <div class="reading-progress" aria-hidden="true"><span id="reading-progress-bar"></span></div>
+  <article class="post-detail">
+    <header class="post-detail-header">
+      <a class="back-link" href="/posts/"><Icon name="back" size={15} /> 回到所有文章</a>
+      <h1>{post.data.title}</h1>
+      <div class="post-detail-meta">
+        <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date, 'long')}</time>
+        <span class="meta-dot" aria-hidden="true">·</span>
+        <span><Icon name="clock" size={14} /> {readingTime(post.body)} 分钟阅读</span>
+      </div>
+      <CoverArt kind={post.data.cover} class="post-detail-cover" />
+    </header>
+    <div class="reading-layout">
+      <div class="prose" id="article-content"><Content />
+        <footer class="article-footer">
+          {post.data.tags.length > 0 && <nav class="article-tags" aria-label="文章标签">{post.data.tags.map((tag) => <a href={`/posts/?tag=${encodeURIComponent(tag)}`}>#{tag}</a>)}</nav>}
+          <button class="button button-outline" data-copy-link><Icon name="link" size={15} /><span>复制文章链接</span></button>
+          <span class="sr-only" role="status" data-copy-status></span>
+        </footer>
+      </div>
+      {toc.length > 0 && <aside class="toc"><div class="toc-inner"><h2>文章目录</h2><nav aria-label="文章目录">{toc.map((heading) => <a class:list={['toc-link', { 'toc-sub': heading.depth === 3 }]} href={`#${heading.slug}`} data-heading-id={heading.slug}>{heading.text}</a>)}</nav><a class="toc-back-top" href="#main-content">回到顶部 ↑</a></div></aside>}
+    </div>
+  </article>
+  <script>
+    import { initArticle } from '../../scripts/article';
+    initArticle();
+  </script>
+</BaseLayout>

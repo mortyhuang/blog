@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Icon from '../components/Icon.astro';
+import { site } from '../config';
+---
+<BaseLayout title="关于" description={`你好，我是 ${site.author}。这里主要用于发布一些文章，以及发布一些实验与工具。`}>
+  <div class="about-page">
+    <div class="page-intro about-intro">
+      <img src="/avatar.jpg" alt={site.author} class="about-avatar" width="64" height="64" loading="eager" decoding="async" />
+      <h1>你好，我是 {site.author}<span class="title-dot">.</span></h1>
+    </div>
+    <div class="prose about-copy">
+      <p>这里是我的个人站点，主要用于发布一些文章，以及发布一些实验与工具。</p>
+
+      <h2>发布内容</h2>
+      <ul>
+        <li><strong>文章：</strong>记录前端技术、界面交互设计以及平时的开发实践与思考。</li>
+        <li><strong>作品：</strong>发布平时探索的创意编程、交互原型以及实用工具，均可直接在线体验。</li>
+      </ul>
+
+      <h2>关于站点</h2>
+      <p>站点基于 <a href="https://astro.build/" target="_blank" rel="noopener noreferrer">Astro</a> 构建，使用 Markdown 与 MDX 编写。保持轻量与简洁，无广告与第三方追踪。</p>
+
+      <h2>联系交流</h2>
+      <p>如果对这里的文章或工具有任何建议或想交流的想法，欢迎通过邮件联系。</p>
+      <div class="about-contact">
+        <a href={`mailto:${site.email}`} class="button button-primary"><Icon name="mail" size={17} /> 写一封信</a>
+        <a href="/rss.xml" class="button button-outline"><Icon name="rss" size={16} /> 订阅 RSS</a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

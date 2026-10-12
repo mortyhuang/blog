@@ -1,0 +1,14 @@
+---
+import ProjectLayout from '../../layouts/ProjectLayout.astro';
+import ShaderPlayground from '../../components/ShaderPlayground.astro';
+import { landscapeProject } from '../../data/projects';
+---
+<ProjectLayout project={landscapeProject}>
+  <ShaderPlayground />
+  <Fragment slot="details">
+    <h2>亲手调出一片风景</h2>
+    <p>拖动频率滑块，改变山丘的密度；拖动振幅滑块，改变曲线的起伏。每一次调整，都会立即生成新的轮廓。</p>
+    <p>这是一个轻量的 Canvas 交互示例，用不同频率的正弦曲线建立对地形生成的直觉。它不需要上传数据，也不依赖外部服务。</p>
+    <p>如果想了解背后的思路，可以继续阅读 <a href="/posts/shader-landscape/">用 Shader，画一片会呼吸的风景</a>。</p>
+  </Fragment>
+</ProjectLayout>

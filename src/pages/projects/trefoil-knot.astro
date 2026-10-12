@@ -1,0 +1,14 @@
+---
+import ProjectLayout from '../../layouts/ProjectLayout.astro';
+import GenerativeArt from '../../components/GenerativeArt.astro';
+import { knotProject } from '../../data/projects';
+---
+<ProjectLayout project={knotProject}>
+  <div class="project-stage-knot"><GenerativeArt /></div>
+  <Fragment slot="details">
+    <h2>一个没有终点的形状</h2>
+    <p>将三叶结曲线投影到二维画布，再用一圈圈细线描绘它的表面。让时间缓慢进入公式，一个静止的数学对象就开始了自己的呼吸。</p>
+    <p>移动指针，可以轻轻改变观察角度。右下角的按钮可以暂停或播放动画；当页面不可见或图形离开视口时，动画会自动停止绘制。</p>
+    <p>这个作品使用原生 Canvas 和 TypeScript。即使关闭 JavaScript，静态图形仍然可见；开启系统的减少动态效果偏好时，默认保持静止。</p>
+  </Fragment>
+</ProjectLayout>
