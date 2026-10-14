@@ -1,0 +1,245 @@
+---
+import Icon from './Icon.astro';
+
+const themes = [
+  { id: 'paper', name: '纸间暖白', color: '#efe4d2' },
+  { id: 'forest', name: '松林青绿', color: '#b5ccb0' },
+  { id: 'night', name: '午夜星蓝', color: '#243d57' },
+];
+---
+
+<dialog class="hc-share-dialog" id="hc-share-dialog" data-calendar-share-dialog aria-labelledby="hc-share-title" aria-describedby="hc-share-description">
+  <header class="hc-share-head">
+    <div>
+      <h2 id="hc-share-title">把日子装进一张卡片</h2>
+      <p id="hc-share-description">挑一款配色，留住这一页时光。</p>
+    </div>
+    <button type="button" class="hc-share-close" data-share-close aria-label="关闭分享卡片" autofocus>
+      <Icon name="close" size={19} />
+    </button>
+  </header>
+
+  <div class="hc-share-body">
+    <figure class="hc-share-preview" data-share-preview aria-busy="false">
+      <div class="hc-share-stage" data-share-stage data-share-format="year">
+        <p class="hc-share-placeholder" data-share-placeholder>正在绘制你的日历…</p>
+        <a data-share-original target="_blank" rel="noopener noreferrer" aria-label="查看分享卡片原图" hidden>
+          <img data-share-image alt="" />
+        </a>
+      </div>
+      <figcaption>高清 PNG · 点击预览查看原图，手机可长按保存</figcaption>
+    </figure>
+
+    <div class="hc-share-settings">
+      <fieldset>
+        <legend>卡片内容</legend>
+        <div class="hc-share-segments">
+          <label><input type="radio" name="calendar-share-view" value="year" data-share-view checked /><span>全年海报</span></label>
+          <label><input type="radio" name="calendar-share-view" value="month" data-share-view /><span>单月卡片</span></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>选择配色</legend>
+        <div class="hc-share-themes">
+          {themes.map((theme) => (
+            <label class="hc-share-theme">
+              <input type="radio" name="calendar-share-theme" value={theme.id} data-share-theme checked={theme.id === 'paper'} />
+              <span><i style={`--swatch: ${theme.color}`} aria-hidden="true"></i>{theme.name}<Icon name="check" size={14} /></span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <label class="hc-share-caption">
+        <span>写一句话</span>
+        <input type="text" data-share-caption maxlength="36" value="把日子过成喜欢的样子。" placeholder="留一句想对自己说的话" />
+      </label>
+      <label class="hc-share-check">
+        <input type="checkbox" data-share-lunar checked />
+        显示农历与节气
+      </label>
+      <label class="hc-share-check">
+        <input type="checkbox" data-share-countdowns checked />
+        显示放假与发薪倒计时
+      </label>
+      <p class="hc-share-note">倒计时以今天为准，预计发薪日期沿用页面设置。图片仅在本地生成；不想分享发薪时间时，可以关闭倒计时。</p>
+    </div>
+  </div>
+
+  <footer class="hc-share-footer">
+    <div class="hc-share-status" role="status" aria-live="polite" aria-atomic="true">
+      <span data-share-status>正在准备图片…</span>
+      <button type="button" class="hc-share-retry" data-share-retry hidden>重新生成</button>
+    </div>
+    <div class="hc-share-actions">
+      <button type="button" class="hc-share-action is-primary" data-share-download disabled>
+        <Icon name="arrow" size={15} />下载 PNG
+      </button>
+      <button type="button" class="hc-share-action" data-share-copy hidden disabled>
+        <Icon name="copy" size={15} />复制图片
+      </button>
+      <button type="button" class="hc-share-action" data-share-native hidden disabled>
+        <Icon name="arrow-up" size={15} />系统分享
+      </button>
+    </div>
+  </footer>
+</dialog>
+
+<style is:global>
+  body.calendar-share-open { overflow: hidden; }
+  .holiday-calendar .hc-share-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 25px;
+    padding: 0 9px;
+    border: 1px solid var(--line-strong);
+    border-radius: 5px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font: 9px var(--mono);
+    cursor: pointer;
+  }
+  .holiday-calendar .hc-share-trigger:hover { border-color: var(--accent); }
+  .hc-share-dialog {
+    width: min(850px, calc(100% - 32px));
+    max-height: calc(100dvh - 40px);
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 16px;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 24px 90px #00000030;
+  }
+  .hc-share-dialog::backdrop {
+    background: #0b181c75;
+    backdrop-filter: blur(6px);
+  }
+  .hc-share-dialog[open] { display: flex; flex-direction: column; }
+  .hc-share-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 21px 24px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .hc-share-head h2 { font-size: 18px; font-weight: 600; letter-spacing: -.4px; }
+  .hc-share-head p { margin-top: 4px; font-size: 12px; color: var(--muted); }
+  .hc-share-close {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .hc-share-close:hover { background: var(--surface-hover); color: var(--heading); }
+  .hc-share-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 245px;
+    gap: 24px;
+    padding: 24px;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .hc-share-preview { margin: 0; min-width: 0; }
+  .hc-share-stage {
+    display: grid;
+    place-items: center;
+    min-height: 280px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--surface-soft);
+  }
+  .hc-share-stage a { display: block; width: 100%; max-width: 390px; }
+  .hc-share-stage img { display: block; width: 100%; height: auto; border-radius: 5px; box-shadow: 0 6px 22px #00000018; }
+  .hc-share-placeholder { color: var(--muted); font-size: 12px; padding: 20px 0; }
+  .hc-share-preview figcaption { margin-top: 12px; font-size: 10px; text-align: center; color: var(--muted); }
+  .hc-share-settings { display: grid; align-content: start; gap: 22px; min-width: 0; }
+  .hc-share-settings fieldset { padding: 0; margin: 0; border: 0; min-width: 0; }
+  .hc-share-settings legend, .hc-share-caption > span { margin-bottom: 9px; font-size: 12px; font-weight: 550; color: var(--heading); }
+  .hc-share-segments { display: flex; padding: 3px; border-radius: 8px; background: var(--surface-soft); border: 1px solid var(--line); }
+  .hc-share-segments label { flex: 1; min-width: 0; }
+  .hc-share-segments input, .hc-share-theme input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .hc-share-segments span {
+    display: block;
+    padding: 8px 6px;
+    text-align: center;
+    border-radius: 5px;
+    font-size: 11px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .hc-share-segments input:checked + span { background: var(--surface); color: var(--accent-strong); box-shadow: 0 1px 4px #00000008; }
+  .hc-share-segments input:focus-visible + span, .hc-share-theme input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .hc-share-themes { display: grid; gap: 8px; }
+  .hc-share-theme > span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .hc-share-theme i { display: block; width: 23px; height: 23px; border-radius: 50%; background: var(--swatch); border: 1px solid #00000015; }
+  .hc-share-theme svg { margin-left: auto; visibility: hidden; }
+  .hc-share-theme input:checked + span { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
+  .hc-share-theme input:checked + span svg { visibility: visible; }
+  .hc-share-caption { display: grid; }
+  .hc-share-caption input {
+    width: 100%;
+    padding: 10px 11px;
+    border: 1px solid var(--line-strong);
+    border-radius: 7px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+  }
+  .hc-share-check { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; }
+  .hc-share-check input { accent-color: var(--accent-strong); width: 15px; height: 15px; margin: 0; }
+  .hc-share-note { font-size: 11px; color: var(--muted); line-height: 1.9; }
+  .hc-share-footer { padding: 16px 24px 20px; border-top: 1px solid var(--line); flex-shrink: 0; }
+  .hc-share-status { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 18px; font-size: 11px; color: var(--muted); }
+  .hc-share-retry { padding: 0; text-decoration: underline; text-underline-offset: 3px; color: var(--accent-strong); }
+  .hc-share-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .hc-share-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 42px;
+    min-width: 0;
+    flex: 1;
+    padding: 0 14px;
+    white-space: nowrap;
+    border: 1px solid var(--line-strong);
+    border-radius: 7px;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .hc-share-action:hover:not(:disabled) { background: var(--accent-soft); }
+  .hc-share-action.is-primary { background: var(--accent-strong); color: var(--surface); border-color: var(--accent-strong); }
+  .hc-share-action.is-primary:hover:not(:disabled) { background: var(--accent); }
+  .hc-share-action:disabled { opacity: .5; cursor: wait; }
+  @media (max-width: 640px) {
+    .hc-share-dialog { width: calc(100% - 20px); max-height: calc(100dvh - 24px); border-radius: 12px; }
+    .hc-share-head { padding: 16px; }
+    .hc-share-head h2 { font-size: 16px; }
+    .hc-share-body { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 18px; }
+    .hc-share-settings { order: -1; gap: 15px; }
+    .hc-share-themes { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .hc-share-theme > span { padding: 10px 4px; justify-content: center; gap: 5px; font-size: 10px; }
+    .hc-share-theme i { width: 15px; height: 15px; flex-shrink: 0; }
+    .hc-share-theme svg { display: none; }
+    .hc-share-stage a { max-width: 270px; }
+    .hc-share-footer { padding: 14px 16px 16px; }
+    .hc-share-action { gap: 5px; padding: 0 8px; font-size: 11px; }
+  }
+</style>

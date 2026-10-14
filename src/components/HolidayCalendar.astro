@@ -3,6 +3,8 @@
  * 月历默认打开当月，可切到全年；年度进度 + 12 个月月历（农历 / 节气 / 假期 / 调休）+ 发薪与假期倒计时。
  * 结构与逻辑参考终端工具 fished，首屏在构建时静态渲染，浏览器负责把「今天」相关的部分刷新到当前日期。
  */
+import CalendarShareDialog from './CalendarShareDialog.astro';
+import Icon from './Icon.astro';
 import holidaysData from '../data/holidays.json';
 import { buildDayFlags, dataYears, getHolidayRows, getHolidayStats, getWageRows, getYearProgress, type HolidayData } from '../lib/holidays';
 import { renderHolidayRows, renderHolidayStats, renderProgress, renderWageRows } from '../lib/calendar-view';
@@ -54,6 +56,9 @@ const holidayStats = getHolidayStats(initialYear, data, today);
           <output class="hc-year-output mono" data-year-output>{initialYear} 年 {initialMonth} 月</output>
           <button type="button" class="hc-year-button" data-year-next aria-label="下一月">→</button>
         </div>
+        <button type="button" class="hc-share-trigger" data-calendar-share-open aria-label="生成分享卡片" aria-haspopup="dialog" aria-controls="hc-share-dialog" hidden>
+          <Icon name="sparkle" size={13} />分享卡片
+        </button>
       </div>
     </div>
     <p class="hc-legend">
@@ -98,6 +103,8 @@ const holidayStats = getHolidayStats(initialYear, data, today);
     </div>
     <div data-stats-output set:html={renderHolidayStats(holidayStats)} />
   </section>
+
+  <CalendarShareDialog />
 </div>
 
 <style is:global>
@@ -188,6 +195,7 @@ const holidayStats = getHolidayStats(initialYear, data, today);
     display: flex;
     align-items: center;
     gap: 2px;
+    height: 25px;
     padding: 2px;
     border: 1px solid var(--line);
     border-radius: 6px;
@@ -196,13 +204,15 @@ const holidayStats = getHolidayStats(initialYear, data, today);
     display: none;
   }
   .holiday-calendar .hc-view-button {
+    height: 19px;
     border: 0;
     border-radius: 4px;
     background: transparent;
     color: var(--muted);
     font: 9px var(--mono);
+    line-height: 19px;
     letter-spacing: 0.4px;
-    padding: 4px 9px;
+    padding: 0 9px;
     cursor: pointer;
     transition: color 0.2s, background 0.2s;
   }
@@ -238,7 +248,8 @@ const holidayStats = getHolidayStats(initialYear, data, today);
     font-size: 11px;
   }
   .holiday-calendar .hc-year-reset {
-    padding: 4px 9px;
+    height: 25px;
+    padding: 0 9px;
     font-size: 9px;
     letter-spacing: 0.4px;
   }
@@ -374,8 +385,14 @@ const holidayStats = getHolidayStats(initialYear, data, today);
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 33px;
+    aspect-ratio: 1;
+    min-height: 0;
+    min-width: 0;
     border-radius: 4px;
+    background: var(--surface-soft);
+  }
+  .holiday-calendar .hc-day.is-empty {
+    background: transparent;
   }
   .holiday-calendar .hc-day time {
     display: flex;
@@ -422,7 +439,7 @@ const holidayStats = getHolidayStats(initialYear, data, today);
   }
   .holiday-calendar .hc-day.is-today {
     background: var(--accent-soft);
-    box-shadow: inset 0 0 0 1px var(--accent);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
   .holiday-calendar .hc-day.is-today .hc-day-num,
   .holiday-calendar .hc-day.is-today .hc-day-lunar,
@@ -468,8 +485,8 @@ const holidayStats = getHolidayStats(initialYear, data, today);
     gap: 4px;
   }
   .holiday-calendar .hc-months.is-month .hc-day {
-    min-height: 64px;
-    padding: 6px 3px 7px;
+    min-height: 0;
+    padding: 0 3px;
     border-radius: 5px;
   }
   .holiday-calendar .hc-months.is-month .hc-day-num {
@@ -480,6 +497,10 @@ const holidayStats = getHolidayStats(initialYear, data, today);
   }
   .holiday-calendar .hc-months.is-month .hc-day-note {
     display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 8.5px;
     line-height: 1.5;
     color: var(--muted);
@@ -688,13 +709,20 @@ const holidayStats = getHolidayStats(initialYear, data, today);
       padding: 12px 6px 13px;
     }
     .holiday-calendar .hc-months.is-month .hc-day {
-      padding: 5px 0 6px;
+      padding: 0;
+    }
+    .holiday-calendar .hc-months.is-month .hc-day time {
+      line-height: 1.15;
+    }
+    .holiday-calendar .hc-months.is-month .hc-day-num {
+      font-size: clamp(11px, 3.3vw, 15px);
     }
     .holiday-calendar .hc-months.is-month .hc-day-lunar {
-      font-size: 9px;
+      font-size: clamp(8px, 2.3vw, 10px);
     }
     .holiday-calendar .hc-months.is-month .hc-day-note {
-      font-size: 7.5px;
+      font-size: clamp(6px, 1.9vw, 8.5px);
+      line-height: 1.3;
     }
     /* 一周节日名在上面的短标签里已经出现过，窄屏不再重复。 */
     .holiday-calendar .hc-months.is-month .hc-day-note-extra {
@@ -749,6 +777,7 @@ const holidayStats = getHolidayStats(initialYear, data, today);
     type PaySpec,
   } from '../lib/holidays';
   import { renderHolidayRows, renderHolidayStats, renderPaySettings, renderProgress, renderWageRows } from '../lib/calendar-view';
+  import { setupCalendarShare } from '../scripts/calendar-share';
 
   type CalendarRenderer = typeof import('../lib/lunar-calendar');
   type CalendarView = 'year' | 'month';
@@ -978,6 +1007,7 @@ const holidayStats = getHolidayStats(initialYear, data, today);
       button.addEventListener('click', () => setView(button.dataset.view === 'month' ? 'month' : 'year'));
     }
 
+    setupCalendarShare(root, () => ({ year, month, view, paySpec }), data, flags);
     switchEl.hidden = false;
     monthNavEl.hidden = false;
     syncNav();

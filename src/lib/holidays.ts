@@ -29,6 +29,9 @@ export type DayFlags = Map<string, DayFlag>;
 export interface WageRow {
   label: string;
   info: string;
+  /** 按休息日顺延后的预计发薪日期，与设置里的原定日期。 */
+  payDate: string;
+  scheduledDate: string;
   daysLeft: number;
   isToday: boolean;
   /** 本发薪周期的进度：上一次发薪到这次发薪之间已经过去的比例，发薪当天算满格。 */
@@ -235,7 +238,7 @@ export function getWageRows(today: Date, flags: DayFlags, spec: PaySpec = DEFAUL
     const cycleDays = Math.max(1, diffDays(next.actual, previous.actual));
     const elapsedDays = Math.min(cycleDays, Math.max(0, diffDays(today, previous.actual)));
     const daysLeft = diffDays(next.actual, today);
-    const base = { label, ratio: elapsedDays / cycleDays, cycleDays, elapsedDays };
+    const base = { label, payDate: toYmd(next.actual), scheduledDate: toYmd(next.raw), ratio: elapsedDays / cycleDays, cycleDays, elapsedDays };
 
     if (daysLeft === 0) {
       return { ...base, info: '今天发', daysLeft: 0, isToday: true };

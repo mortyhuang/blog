@@ -17,7 +17,7 @@ const SOLAR_FESTIVAL_ALIASES: Record<string, string> = {
   元旦节: '元旦',
 };
 
-interface DayCell {
+export interface DayCell {
   date: string;
   day: number;
   lunar: string;
@@ -51,7 +51,8 @@ function describeDay(solar: SolarDate): { lunar: string; note: string; extra: st
   return { lunar: short, note: shortLunar, extra: festivals, detail: festivals ? `农历${shortLunar} · ${festivals}` : `农历${shortLunar}` };
 }
 
-function buildCells(year: number, month: number, flags: DayFlags): (DayCell | null)[] {
+/** 网页与分享图片共用同一份日期、农历、节气和调休数据。 */
+export function buildMonthCells(year: number, month: number, flags: DayFlags): (DayCell | null)[] {
   const cells: (DayCell | null)[] = [];
   const daysInMonth = new Date(year, month, 0).getDate();
   const leading = new Date(year, month - 1, 1).getDay();
@@ -82,7 +83,7 @@ function buildCells(year: number, month: number, flags: DayFlags): (DayCell | nu
 
 /** 一年的月历紧凑版；detail 模式只画一个月，多一行农历与节日说明。 */
 function renderMonth(year: number, month: number, flags: DayFlags, detail = false): string {
-  const cells = buildCells(year, month, flags);
+  const cells = buildMonthCells(year, month, flags);
   const today = toYmd(new Date());
   const names = [
     ...new Set(
