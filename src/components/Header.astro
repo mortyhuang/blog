@@ -1,6 +1,7 @@
 ---
 import Logo from './Logo.astro';
 import Icon from './Icon.astro';
+import PickerMenu from './PickerMenu.astro';
 import { site } from '../config';
 import { SEASONS, SEASON_LABEL } from '../lib/season';
 const pathname = Astro.url.pathname;
@@ -9,6 +10,10 @@ const seasons = SEASONS;
 // 图标按季节渲染四份，由 CSS 根据 <html data-season> 显示对应的那个，
 // 这样季节变了不需要 JS 去换图标。首屏内联脚本会在绘制前定好 data-season。
 const seasonIcon = { spring: 'sprout', summer: 'sun', autumn: 'leaf', winter: 'snowflake' } as const;
+// 明暗那三个图标共用一个圆，取的是太阳和月相的意思：
+// 实心 = 浅色（太阳）、半实心 = 深色（月相有缺）、空心 = 跟随系统。
+// 不直接画太阳 / 月亮：太阳是夏季的图标，两个按钮挨着放会分不清。
+const themeIcon = { auto: 'ring', light: 'disc', dark: 'contrast' } as const;
 ---
 <header class="site-header container">
   <div class="header-brand"><Logo /><span class="brand-caption">一个缓慢生长的数字花园</span></div>
@@ -18,26 +23,16 @@ const seasonIcon = { spring: 'sprout', summer: 'sun', autumn: 'leaf', winter: 's
     </nav>
     <div class="header-actions">
       <button class="search-trigger" data-search-open aria-label="搜索文章"><Icon name="search" size={17} /><span>搜索</span><kbd>⌘ K</kbd></button>
-      <button class="icon-button theme-toggle" data-theme-toggle aria-label="切换到深色主题" title="切换主题"><Icon name="contrast" size={18} /></button>
+      <PickerMenu name="theme" label="明暗主题" autoLabel="跟随系统" autoIcon={themeIcon.auto} options={[
+        { value: 'light', label: '浅色', icon: themeIcon.light },
+        { value: 'dark', label: '深色', icon: themeIcon.dark },
+      ]}>
+        {Object.entries(themeIcon).map(([mode, icon]) => <Icon name={icon} class="theme-icon" data-theme-icon={mode} size={18} />)}
+      </PickerMenu>
       {site.season.enabled && (
-        <div class="season-picker">
-          <button class="icon-button season-toggle" data-season-toggle type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="season-menu-list" aria-label="季节主题" title="季节主题">
-            {seasons.map((season) => <Icon name={seasonIcon[season]} class="season-icon" data-season-icon={season} size={17} />)}
-          </button>
-          <div class="season-menu" data-season-menu hidden>
-            <div class="season-menu-list" id="season-menu-list" role="menu" aria-label="季节主题">
-              <button class="season-option" type="button" role="menuitemradio" aria-checked="true" data-season-option="auto">
-                <Icon name="clock" size={14} /><span class="season-option-name">跟随节气</span><Icon name="check" class="season-check" size={13} />
-              </button>
-              <span class="season-menu-divider" role="separator"></span>
-              {seasons.map((season) => (
-                <button class="season-option" type="button" role="menuitemradio" aria-checked="false" data-season-option={season}>
-                  <Icon name={seasonIcon[season]} size={14} /><span class="season-option-name">{SEASON_LABEL[season]}季</span><Icon name="check" class="season-check" size={13} />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <PickerMenu name="season" label="季节主题" autoLabel="跟随节气" options={seasons.map((season) => ({ value: season, label: `${SEASON_LABEL[season]}季`, icon: seasonIcon[season] }))}>
+          {seasons.map((season) => <Icon name={seasonIcon[season]} class="season-icon" data-season-icon={season} size={17} />)}
+        </PickerMenu>
       )}
     </div>
   </div>

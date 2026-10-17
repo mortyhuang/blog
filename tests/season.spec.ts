@@ -200,27 +200,32 @@ test('页头按钮上的季节图标跟着当季走', async ({ page }) => {
 
 test('季节图标和明暗主题的图标不能重样', async ({ page }) => {
   // 夏季用太阳，而明暗主题按钮曾经也是太阳：两个按钮紧挨着，分不清哪个是哪个。
-  // 所以主题按钮换成了「对比度」图标，这里把它钉住。
+  // 所以主题那组换成了「空心 / 半实心 / 实心」三个圆，这里把它们钉住。
   await page.goto('/');
-  const themeIcon = await page.locator('.theme-toggle path').first().getAttribute('d');
-  expect(themeIcon).toBeTruthy();
+  const themeIcons = await page
+    .locator('[data-picker="theme"] .picker-toggle path')
+    .evaluateAll((paths) => paths.map((path) => path.getAttribute('d')));
+  expect(themeIcons.length).toBeGreaterThan(0);
   for (const season of SEASONS) {
     const seasonIcon = await page.locator(`[data-season-icon='${season}'] path`).getAttribute('d');
-    expect(seasonIcon, `${season} 季的图标不能和主题按钮的图标相同`).not.toBe(themeIcon);
+    expect(themeIcons, `${season} 季的图标不能和主题按钮的图标相同`).not.toContain(seasonIcon);
   }
 });
 
-test('季节菜单展开后不会越出视口', async ({ page }) => {
-  // 页头靠右，菜单向左展开；窄屏上最容易顶出屏幕。
+test('页头的两个菜单展开后都不会越出视口', async ({ page }) => {
+  // 两个选择器都在页头靠右的位置，菜单向左展开；窄屏上最容易顶出屏幕。
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/');
-    await page.getByRole('button', { name: /^季节主题/ }).click();
-    const menu = page.getByRole('menu', { name: '季节主题' });
-    await expect(menu).toBeVisible();
-    const box = (await menu.boundingBox())!;
-    expect(box.x, `宽度 ${width}`).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width, `宽度 ${width}`).toBeLessThanOrEqual(width);
+    for (const label of ['明暗主题', '季节主题']) {
+      await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
+      const menu = page.getByRole('menu', { name: label });
+      await expect(menu).toBeVisible();
+      const box = (await menu.boundingBox())!;
+      expect(box.x, `${label} @${width}`).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width, `${label} @${width}`).toBeLessThanOrEqual(width);
+      await page.keyboard.press('Escape');
+    }
   }
 });
 

@@ -1,4 +1,5 @@
 import {
+  SEASONS,
   SEASON_LABEL,
   isHemisphere,
   isSeason,
@@ -13,6 +14,7 @@ const SEASON_KEY = 'mori-season';
 /** 标签页可能连着开好几天，隔一阵子重新对一次节气。 */
 const SEASON_RECHECK_MS = 15 * 60 * 1000;
 
+type Theme = 'light' | 'dark';
 type SeasonMode = 'auto' | 'manual';
 
 function readStore(key: string): string | null {
@@ -26,48 +28,166 @@ function writeStore(key: string, value: string | null) {
   } catch {}
 }
 
+interface PickerConfig {
+  /** 对应 <PickerMenu name={...}>，用来找 DOM */
+  name: string;
+  /** 菜单标题，也是按钮 aria-label 的前缀 */
+  label: string;
+  /** 「自动」那一项的文案，用在按钮提示里 */
+  autoLabel: string;
+  /** 具体选项（不含「自动」），用来把值翻译成文案 */
+  choices: Array<{ value: string; label: string }>;
+  /** 当前选中值：'auto' 或某个具体值 */
+  current: () => string;
+  /** 自动时实际生效的值 */
+  effective: () => string;
+  /** 用户选了某一项 */
+  choose: (value: string) => void;
+}
+
+/**
+ * 「按钮 + 菜单」选择器的交互：展开收起、键盘导航、点选，以及 aria 状态和按钮提示。
+ * 明暗主题与季节主题共用这套行为，各自只提供状态与文案。
+ * 按钮里的图标由 CSS 按 data-* 状态决定显示哪个，所以这里不碰图标。
+ */
+function createPicker(config: PickerConfig) {
+  const { name, label, autoLabel, choices, current, effective, choose } = config;
+  const picker = document.querySelector<HTMLElement>(`[data-picker="${name}"]`);
+  const toggle = picker?.querySelector<HTMLButtonElement>('[data-picker-toggle]');
+  const menu = picker?.querySelector<HTMLElement>('[data-picker-menu]');
+  if (!picker || !toggle || !menu) return null;
+
+  const options = Array.from(menu.querySelectorAll<HTMLButtonElement>('[data-picker-option]'));
+  const labelOf = (value: string) => choices.find((choice) => choice.value === value)?.label ?? value;
+
+  const sync = () => {
+    const value = current();
+    for (const option of options) {
+      option.setAttribute('aria-checked', String(option.dataset.pickerOption === value));
+    }
+    const description = value === 'auto'
+      ? `${autoLabel}（当前 ${labelOf(effective())}）`
+      : `已选择${labelOf(value)}`;
+    toggle.setAttribute('aria-label', `${label}：${description}`);
+    toggle.setAttribute('title', `${label}：${description}`);
+  };
+
+  const open = (target: 'checked' | 'first' | 'last' = 'checked') => {
+    menu.hidden = false;
+    toggle.setAttribute('aria-expanded', 'true');
+    const checked = options.find((option) => option.getAttribute('aria-checked') === 'true');
+    const pick = target === 'first' ? options[0] : target === 'last' ? options.at(-1) : checked ?? options[0];
+    pick?.focus();
+  };
+
+  const close = (restoreFocus = false) => {
+    if (menu.hidden) return;
+    menu.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) toggle.focus();
+  };
+
+  toggle.addEventListener('click', () => {
+    if (menu.hidden) open();
+    else close();
+  });
+
+  // 上下键直接展开菜单并把焦点送进去，符合菜单按钮的常见预期。
+  toggle.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    event.preventDefault();
+    open(event.key === 'ArrowDown' ? 'first' : 'last');
+  });
+
+  menu.addEventListener('keydown', (event) => {
+    const index = options.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === 'Escape') { event.preventDefault(); close(true); return; }
+    if (event.key === 'Tab') { close(); return; }
+    if (event.key === 'Home') { event.preventDefault(); options[0]?.focus(); return; }
+    if (event.key === 'End') { event.preventDefault(); options.at(-1)?.focus(); return; }
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    event.preventDefault();
+    const step = event.key === 'ArrowDown' ? 1 : -1;
+    options[(index + step + options.length) % options.length]?.focus();
+  });
+
+  for (const option of options) {
+    option.addEventListener('click', () => {
+      const value = option.dataset.pickerOption;
+      if (value) choose(value);
+      close(true);
+    });
+  }
+
+  // 点到菜单外面、或者焦点跑掉了就收起来。
+  document.addEventListener('pointerdown', (event) => {
+    if (menu.hidden) return;
+    const target = event.target as Node;
+    if (!menu.contains(target) && !toggle.contains(target)) close();
+  });
+
+  document.addEventListener('focusin', (event) => {
+    if (menu.hidden) return;
+    const target = event.target as Node;
+    if (!menu.contains(target) && !toggle.contains(target)) close();
+  });
+
+  return { sync };
+}
+
 export function initTheme() {
   const root = document.documentElement;
-  const themeButton = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
-  const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
-
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
   const browserColorMeta = document.querySelector('meta[name="theme-color"]');
   const announce = () => window.dispatchEvent(new CustomEvent('themechange'));
 
-  /** 浏览器 UI 的颜色跟着实际背景走，这样四季与明暗都能对上。 */
+  /** 浏览器 UI 的颜色跟着实际背景走，明暗与四季都能对上。 */
   const syncBrowserColor = () => {
     const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
     browserColorMeta?.setAttribute('content', bg || '#f8faf7');
   };
 
-  const applyTheme = (theme: string) => {
+  // ---- 明暗主题：跟随系统 / 浅色 / 深色 ----
+  // 没有 mori-theme 这个键就是「跟随系统」，这也是首次访问的默认行为。
+  const storedTheme = (): Theme | null => {
+    const value = readStore(THEME_KEY);
+    return value === 'light' || value === 'dark' ? value : null;
+  };
+  const systemTheme = (): Theme => (media.matches ? 'dark' : 'light');
+  const effectiveTheme = (): Theme => (root.dataset.theme === 'dark' ? 'dark' : 'light');
+
+  const applyTheme = (theme: Theme) => {
     root.dataset.theme = theme;
-    themeButton?.setAttribute('aria-label', `切换到${theme === 'dark' ? '浅色' : '深色'}主题`);
-    themeButton?.setAttribute('title', theme === 'dark' ? '切换到浅色主题' : '切换到深色主题');
+    // CSS 靠 data-theme-mode 决定按钮显示哪个图标，所以先写状态再同步提示。
+    root.dataset.themeMode = storedTheme() ? 'manual' : 'auto';
+    themePicker?.sync();
     syncBrowserColor();
     announce();
   };
 
-  themeButton?.addEventListener('click', () => {
-    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    writeStore(THEME_KEY, next);
+  const themePicker = createPicker({
+    name: 'theme',
+    label: '明暗主题',
+    autoLabel: '跟随系统',
+    choices: [{ value: 'light', label: '浅色' }, { value: 'dark', label: '深色' }],
+    current: () => storedTheme() ?? 'auto',
+    effective: effectiveTheme,
+    choose: (value) => {
+      writeStore(THEME_KEY, value === 'auto' ? null : value);
+      applyTheme(value === 'light' || value === 'dark' ? value : systemTheme());
+    },
   });
 
-  colorScheme.addEventListener('change', (event) => {
-    if (readStore(THEME_KEY)) return;
-    applyTheme(event.matches ? 'dark' : 'light');
+  media.addEventListener('change', () => {
+    if (storedTheme()) return; // 手动选过就不跟系统了
+    applyTheme(systemTheme());
   });
 
-  applyTheme(root.dataset.theme || 'light');
+  applyTheme(effectiveTheme());
   initSeason();
 
+  // ---- 季节主题：跟随节气 / 四季 ----
   function initSeason() {
-    const seasonButton = document.querySelector<HTMLButtonElement>('[data-season-toggle]');
-    const seasonMenu = document.querySelector<HTMLElement>('[data-season-menu]');
-    if (!seasonButton || !seasonMenu) return;
-
-    const options = Array.from(seasonMenu.querySelectorAll<HTMLButtonElement>('[data-season-option]'));
     const hemisphere: Hemisphere = isHemisphere(root.dataset.seasonHemisphere)
       ? root.dataset.seasonHemisphere
       : 'auto';
@@ -104,25 +224,13 @@ export function initTheme() {
       current = { season, mode };
       root.dataset.season = season;
       root.dataset.seasonMode = mode;
-
-      const state = mode === 'auto' ? '跟随节气' : '已手动锁定';
-      seasonButton.setAttribute('aria-label', `季节主题：${SEASON_LABEL[season]}（${state}）`);
-      seasonButton.setAttribute('title', `季节主题：${SEASON_LABEL[season]}（${state}）`);
-
-      // 单选组只能有一项被选中：自动时选中「跟随节气」，手动锁定时才选中具体那一季。
-      // 自动模式当前落在哪一季，由按钮上的图标和提示文字表达。
-      for (const option of options) {
-        const value = option.dataset.seasonOption;
-        const checked = mode === 'auto' ? value === 'auto' : value === season;
-        option.setAttribute('aria-checked', String(checked));
-      }
-
+      seasonPicker?.sync();
       syncBrowserColor();
       announce();
     };
 
     /** 重新判定当前该用哪个季节：预览参数 > 手动锁定 > 按节气自动算。 */
-    const refresh = () => {
+    const refreshSeason = () => {
       const pinned = previewSeason() ?? lockedSeason();
       const mode: SeasonMode = pinned ? 'manual' : 'auto';
       const season = pinned ?? resolveSeason(Date.now(), timeZone(), hemisphere);
@@ -130,72 +238,25 @@ export function initTheme() {
       applySeason(season, mode);
     };
 
-    const openMenu = (target: 'checked' | 'first' | 'last' = 'checked') => {
-      seasonMenu.hidden = false;
-      seasonButton.setAttribute('aria-expanded', 'true');
-      const checked = options.find((option) => option.getAttribute('aria-checked') === 'true');
-      const pick = target === 'first' ? options[0] : target === 'last' ? options.at(-1) : checked ?? options[0];
-      pick?.focus();
-    };
-
-    const closeMenu = (restoreFocus = false) => {
-      if (seasonMenu.hidden) return;
-      seasonMenu.hidden = true;
-      seasonButton.setAttribute('aria-expanded', 'false');
-      if (restoreFocus) seasonButton.focus();
-    };
-
-    seasonButton.addEventListener('click', () => {
-      if (seasonMenu.hidden) openMenu();
-      else closeMenu();
-    });
-
-    // 上下键直接展开菜单并把焦点送进去，符合菜单按钮的常见预期。
-    seasonButton.addEventListener('keydown', (event) => {
-      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-      event.preventDefault();
-      openMenu(event.key === 'ArrowDown' ? 'first' : 'last');
-    });
-
-    seasonMenu.addEventListener('keydown', (event) => {
-      const index = options.indexOf(document.activeElement as HTMLButtonElement);
-      if (event.key === 'Escape') { event.preventDefault(); closeMenu(true); return; }
-      if (event.key === 'Tab') { closeMenu(); return; }
-      if (event.key === 'Home') { event.preventDefault(); options[0]?.focus(); return; }
-      if (event.key === 'End') { event.preventDefault(); options.at(-1)?.focus(); return; }
-      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-      event.preventDefault();
-      const step = event.key === 'ArrowDown' ? 1 : -1;
-      options[(index + step + options.length) % options.length]?.focus();
-    });
-
-    for (const option of options) {
-      option.addEventListener('click', () => {
-        const value = option.dataset.seasonOption;
-        writeStore(SEASON_KEY, value === 'auto' ? null : value ?? null);
+    const seasonPicker = createPicker({
+      name: 'season',
+      label: '季节主题',
+      autoLabel: '跟随节气',
+      choices: SEASONS.map((season) => ({ value: season, label: `${SEASON_LABEL[season]}季` })),
+      current: () => previewSeason() ?? lockedSeason() ?? 'auto',
+      effective: () => (isSeason(root.dataset.season) ? root.dataset.season : 'spring'),
+      choose: (value) => {
+        writeStore(SEASON_KEY, value === 'auto' ? null : value);
         clearPreview();
-        refresh();
-        closeMenu(true);
-      });
-    }
-
-    // 点到菜单外面、或者焦点跑掉了就收起来。
-    document.addEventListener('pointerdown', (event) => {
-      if (seasonMenu.hidden) return;
-      const target = event.target as Node;
-      if (!seasonMenu.contains(target) && !seasonButton.contains(target)) closeMenu();
+        refreshSeason();
+      },
     });
+    if (!seasonPicker) return;
 
-    document.addEventListener('focusin', (event) => {
-      if (seasonMenu.hidden) return;
-      const target = event.target as Node;
-      if (!seasonMenu.contains(target) && !seasonButton.contains(target)) closeMenu();
-    });
-
-    refresh();
+    refreshSeason();
 
     // 跨过交节时刻就自动换季；标签页回到前台时也补一次判定。
-    window.setInterval(() => { if (!document.hidden) refresh(); }, SEASON_RECHECK_MS);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+    window.setInterval(() => { if (!document.hidden) refreshSeason(); }, SEASON_RECHECK_MS);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshSeason(); });
   }
 }

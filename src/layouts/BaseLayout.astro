@@ -41,12 +41,14 @@ ${seasonCore}
   const root = document.documentElement;
   const read = (key) => { try { return localStorage.getItem(key); } catch { return null; } };
 
-  // 明暗：手动选过就用选的，否则跟随系统。
-  let theme = read('mori-theme');
-  if (theme !== 'light' && theme !== 'dark') {
-    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  root.dataset.theme = theme;
+  // 明暗：手动选过就用选的，否则跟随系统（没有 mori-theme 这个键就是「跟随系统」）。
+  const storedTheme = read('mori-theme');
+  const manualTheme = storedTheme === 'light' || storedTheme === 'dark';
+  root.dataset.theme = manualTheme
+    ? storedTheme
+    : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // CSS 靠它决定主题按钮显示哪个图标（空心 / 半实心 / 实心）。
+  root.dataset.themeMode = manualTheme ? 'manual' : 'auto';
 
 ${seasonBootstrap}
   // 浏览器 UI 的颜色跟着实际背景走。样式表可能还没生效，initTheme 里会再同步一次。

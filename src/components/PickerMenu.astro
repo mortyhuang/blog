@@ -1,0 +1,43 @@
+---
+import Icon from './Icon.astro';
+
+/**
+ * 页头那个「按钮 + 菜单」的选择器。明暗主题和季节主题共用一套结构，
+ * 交互（展开、键盘、点选）由 src/scripts/theme.ts 里的 createPicker 统一处理。
+ *
+ * 菜单里第一项固定是「自动」，后面跟若干具体选项；选中项由 aria-checked 表示。
+ * 按钮里放什么图标由调用方通过 slot 决定：主题按钮固定一个图标，
+ * 季节按钮会把四季的图标都渲染出来，由 CSS 按 data-season 决定显示哪个。
+ */
+interface Option { value: string; label: string; icon: string }
+interface Props {
+  /** 用来拼 data-* 钩子：'theme' → [data-picker="theme"] / [data-picker-option] … */
+  name: string;
+  label: string;
+  /** 「自动」那一项的文案 */
+  autoLabel: string;
+  /** 「自动」那一项的图标，默认用时钟（和「跟随节气」一致） */
+  autoIcon?: string;
+  options: Option[];
+}
+const { name, label, autoLabel, autoIcon = 'clock', options } = Astro.props;
+const menuId = `${name}-menu`;
+---
+<div class="picker" data-picker={name}>
+  <button class="icon-button picker-toggle" type="button" data-picker-toggle aria-haspopup="menu" aria-expanded="false" aria-controls={menuId} aria-label={label} title={label}>
+    <slot />
+  </button>
+  <div class="picker-menu" data-picker-menu hidden>
+    <div class="picker-menu-list" id={menuId} role="menu" aria-label={label}>
+      <button class="picker-option" type="button" role="menuitemradio" aria-checked="true" data-picker-option="auto">
+        <Icon name={autoIcon} size={14} /><span class="picker-option-name">{autoLabel}</span><Icon name="check" class="picker-check" size={13} />
+      </button>
+      <span class="picker-divider" role="separator"></span>
+      {options.map((option) => (
+        <button class="picker-option" type="button" role="menuitemradio" aria-checked="false" data-picker-option={option.value}>
+          <Icon name={option.icon} size={14} /><span class="picker-option-name">{option.label}</span><Icon name="check" class="picker-check" size={13} />
+        </button>
+      ))}
+    </div>
+  </div>
+</div>

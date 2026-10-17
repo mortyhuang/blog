@@ -167,27 +167,31 @@ h1 { letter-spacing: -.045em; }
 kbd { font: 9px var(--mono); padding: 1px 5px; border: 0; border-radius: 3px; background: rgba(0, 0, 0, 0.05); color: var(--text); line-height: 1.4; }
 [data-theme='dark'] kbd { background: rgba(255, 255, 255, 0.08); color: var(--text); }
 .search-trigger kbd { margin-left: 2px; }
-.theme-toggle, .season-toggle { width: 30px; height: 30px; border-radius: 999px; background: var(--surface-soft); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); transition: background .18s, color .18s; }
-.theme-toggle:hover, .season-toggle:hover { background: var(--surface-hover); color: var(--accent); }
+.picker-toggle { width: 30px; height: 30px; border-radius: 999px; background: var(--surface-soft); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); transition: background .18s, color .18s; }
+.picker-toggle:hover { background: var(--surface-hover); color: var(--accent); }
 
-/* 季节选择器：四个季节的图标都渲染出来，只显示与 data-season 相符的那个，
-   季节变了不需要 JS 换图标。data-season 由 <head> 里的内联脚本在绘制前定好。 */
-.season-picker { position: relative; display: inline-flex; }
-.season-icon { display: none; }
+/* 页头的两个选择器（明暗主题、季节主题）共用下面这套结构。
+   按钮里的图标一次渲染好几个，由 CSS 根据当前状态决定显示哪个，换状态不需要 JS 去换图标；
+   data-theme / data-theme-mode / data-season 都由 <head> 里的内联脚本在首次绘制前定好。 */
+.picker { position: relative; display: inline-flex; }
+.theme-icon, .season-icon { display: none; }
+[data-theme-mode='auto'] [data-theme-icon='auto'],
+[data-theme-mode='manual'][data-theme='light'] [data-theme-icon='light'],
+[data-theme-mode='manual'][data-theme='dark'] [data-theme-icon='dark'],
 [data-season='spring'] [data-season-icon='spring'],
 [data-season='summer'] [data-season-icon='summer'],
 [data-season='autumn'] [data-season-icon='autumn'],
 [data-season='winter'] [data-season-icon='winter'],
 :root:not([data-season]) [data-season-icon='spring'] { display: block; }
-.season-menu { position: absolute; z-index: 40; top: calc(100% + 8px); right: 0; width: 172px; padding: 6px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); box-shadow: 0 18px 40px -22px rgba(0, 0, 0, .45); }
-.season-menu-list { display: flex; flex-direction: column; }
-.season-option { display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 9px; border-radius: 5px; font-size: 12px; color: var(--text); text-align: left; transition: background .18s, color .18s; }
-.season-option:hover, .season-option:focus-visible { background: var(--accent-soft); color: var(--accent-strong); }
-.season-option-name { flex: 1; }
-.season-check { color: var(--accent); opacity: 0; }
-.season-option[aria-checked='true'] { color: var(--accent-strong); font-weight: 550; }
-.season-option[aria-checked='true'] .season-check { opacity: 1; }
-.season-menu-divider { height: 1px; margin: 5px 9px; background: var(--line); }
+.picker-menu { position: absolute; z-index: 40; top: calc(100% + 8px); right: 0; width: 172px; padding: 6px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); box-shadow: 0 18px 40px -22px rgba(0, 0, 0, .45); }
+.picker-menu-list { display: flex; flex-direction: column; }
+.picker-option { display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 9px; border-radius: 5px; font-size: 12px; color: var(--text); text-align: left; transition: background .18s, color .18s; }
+.picker-option:hover, .picker-option:focus-visible { background: var(--accent-soft); color: var(--accent-strong); }
+.picker-option-name { flex: 1; }
+.picker-check { color: var(--accent); opacity: 0; }
+.picker-option[aria-checked='true'] { color: var(--accent-strong); font-weight: 550; }
+.picker-option[aria-checked='true'] .picker-check { opacity: 1; }
+.picker-divider { height: 1px; margin: 5px 9px; background: var(--line); }
 
 /* Home introduction & living illustration */
 .home-page { width: 100%; max-width: var(--reading-width); margin-inline: auto; }
@@ -506,7 +510,7 @@ kbd { font: 9px var(--mono); padding: 1px 5px; border: 0; border-radius: 3px; ba
   .main-nav a { font-size: 12px; }
   .search-trigger { padding: 0; width: 30px; height: 30px; justify-content: center; }
   .search-trigger > span, .search-trigger kbd { display: none; }
-  .theme-toggle { width: 30px; height: 30px; }
+  .picker-toggle { width: 30px; height: 30px; }
   .hero { padding: 45px 0 42px; gap: 20px; }
   .hero h1 { font-size: 44px; margin-top: 20px; }
   .hero-eyebrow { font-size: 7px; }

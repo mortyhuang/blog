@@ -21,15 +21,51 @@ test('首页显示文章、作品与真实导航', async ({ page }) => {
 test('首次遵循系统主题，手动选择持久化且导航后保留', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/');
+  // 没手动选过 → 跟随系统
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.getByRole('button', { name: '切换到浅色主题' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme-mode', 'auto');
+
+  await page.getByRole('button', { name: /^明暗主题/ }).click();
+  await page.getByRole('menuitemradio', { name: '浅色' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme-mode', 'manual');
+
   await page.goto('/projects/');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await page.getByRole('button', { name: '切换到深色主题' }).click();
+
+  await page.getByRole('button', { name: /^明暗主题/ }).click();
+  await page.getByRole('menuitemradio', { name: '深色' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});
+
+test('明暗主题可以选回跟随系统，之后系统变化会跟着走', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/');
+
+  // 先手动选一个和系统相反的，确认手动期间系统变化不干扰。
+  await page.getByRole('button', { name: /^明暗主题/ }).click();
+  await page.getByRole('menuitemradio', { name: '浅色' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+  // 选回「跟随系统」：立刻跟系统，并且把本地存储清掉。
+  await page.getByRole('button', { name: /^明暗主题/ }).click();
+  await expect(page.getByRole('menuitemradio', { name: '跟随系统' })).toHaveAttribute('aria-checked', 'false');
+  await page.getByRole('menuitemradio', { name: '跟随系统' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme-mode', 'auto');
+  expect(await page.evaluate(() => localStorage.getItem('mori-theme'))).toBeNull();
+
+  // 之后系统再变，自动模式跟着变，刷新后也保持。
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 
 test('文章不再区分开发与设计分类，卡片与列表不显示分类标签', async ({ page }) => {
