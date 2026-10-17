@@ -513,10 +513,13 @@ test('全站页头页脚最大 640px 且居中，导航与操作按钮不越界'
           width: bounds.width,
           left: bounds.left,
           right: bounds.right,
-          controls: Array.from(element.querySelectorAll('a, button')).map((control) => {
-            const rect = control.getBoundingClientRect();
-            return { label: control.getAttribute('aria-label') || control.textContent, left: rect.left, right: rect.right };
-          }),
+          controls: Array.from(element.querySelectorAll('a, button'))
+            // 收起的下拉面板（例如页头的季节菜单）没有布局盒，不参与越界检查。
+            .filter((control) => control.getClientRects().length > 0)
+            .map((control) => {
+              const rect = control.getBoundingClientRect();
+              return { label: control.getAttribute('aria-label') || control.textContent, left: rect.left, right: rect.right };
+            }),
         };
       }),
     }));

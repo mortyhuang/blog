@@ -18,6 +18,8 @@
     if (!canvas || !context || !frequency || !amplitude) return;
     const draw = () => {
       const dark = document.documentElement.dataset.theme === 'dark';
+      // 线条颜色跟着四季主题走；面板的底色和太阳是这张风景画自己的配色，不随季节变。
+      const artColor = getComputedStyle(document.documentElement).getPropertyValue('--art').trim() || '#467953';
       context.fillStyle = dark ? '#1a2820' : '#e1eada'; context.fillRect(0, 0, 720, 300);
       context.fillStyle = dark ? '#52764e' : '#eef0cb'; context.beginPath(); context.arc(513, 78, 39, 0, Math.PI * 2); context.fill();
       const freq = Number(frequency.value), amp = Number(amplitude.value);
@@ -29,8 +31,9 @@
           const y = 90 + j * 5 - envelope * noise * amp - envelope * amp * Math.sin(j / 44 * Math.PI);
           x ? context.lineTo(x, y) : context.moveTo(x, y);
         }
-        context.strokeStyle = dark ? `rgba(164, 199, 147, ${.15 + j / 80})` : `rgba(71, 109, 63, ${.15 + j / 80})`; context.lineWidth = .8; context.stroke();
+        context.strokeStyle = artColor; context.globalAlpha = .15 + j / 80; context.lineWidth = .8; context.stroke();
       }
+      context.globalAlpha = 1;
       const fOut = playground.querySelector('output[data-frequency-output]'); if (fOut) fOut.textContent = freq.toFixed(1);
       const aOut = playground.querySelector('output[data-amplitude-output]'); if (aOut) aOut.textContent = String(amp);
     };

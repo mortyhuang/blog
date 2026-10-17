@@ -6,15 +6,60 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Search from '../components/Search.astro';
 import { site } from '../config';
+import { SEASONS, resolveSeason } from '../lib/season';
+// 季节判定的实现只有 season-core.js 这一份。这里把源码原样内联进 <head>，
+// 让浏览器在第一次绘制之前就能定好 data-season，不必等打包好的模块跑起来。
+import seasonCoreSource from '../lib/season-core.js?raw';
 
 interface Props { title?: string; description?: string; type?: 'website' | 'article'; date?: Date; wide?: boolean; }
 const { title, description = site.description, type = 'website', date, wide = false } = Astro.props;
 const fullTitle = title ? `${title} — ${site.name}` : site.title;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const image = new URL('/og.png', Astro.site);
+
+// 静态站点没有请求上下文，服务端拿不到时区，只能按配置里的半球先算一个；
+// 客户端首屏脚本随后会按真实时区和本地时间纠正。
+const initialSeason = resolveSeason(Date.now(), undefined, site.season.hemisphere);
+
+// 内联脚本用不到模块导出，其余内容原样保留（含注释）；打包模块 import 的也是同一个
+// 文件，所以浏览器里跑的和构建时算的是同一份实现。
+const seasonCore = seasonCoreSource.replace(/^export /gm, '');
+const seasonBootstrap = site.season.enabled
+  ? `  // 季节：?season= 预览 > 手动锁定 > 按节气自动判定。
+  const stored = read('mori-season');
+  const param = new URLSearchParams(location.search).get('season');
+  const seasons = ${JSON.stringify(SEASONS)};
+  const pinned = seasons.includes(param) ? param : seasons.includes(stored) ? stored : null;
+  let zone;
+  try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch {}
+  root.dataset.season = pinned || resolveSeason(Date.now(), zone, root.dataset.seasonHemisphere || 'auto');
+  root.dataset.seasonMode = pinned ? 'manual' : 'auto';
+`
+  : '';
+const inlineBootstrap = `(() => {
+${seasonCore}
+  const root = document.documentElement;
+  const read = (key) => { try { return localStorage.getItem(key); } catch { return null; } };
+
+  // 明暗：手动选过就用选的，否则跟随系统。
+  let theme = read('mori-theme');
+  if (theme !== 'light' && theme !== 'dark') {
+    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  root.dataset.theme = theme;
+
+${seasonBootstrap}
+  // 浏览器 UI 的颜色跟着实际背景走。样式表可能还没生效，initTheme 里会再同步一次。
+  const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
+  if (bg) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
+})();`;
 ---
 <!doctype html>
-<html lang={site.language} data-theme="light">
+<html
+  lang={site.language}
+  data-theme="light"
+  {...(site.season.enabled ? { 'data-season': initialSeason, 'data-season-hemisphere': site.season.hemisphere } : {})}
+>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -39,15 +84,7 @@ const image = new URL('/og.png', Astro.site);
     <meta property="og:locale" content="zh_CN" />
     <meta name="twitter:card" content="summary_large_image" />
     {date && <meta property="article:published_time" content={date.toISOString()} />}
-    <script is:inline>
-      (() => {
-        let theme;
-        try { theme = localStorage.getItem('mori-theme'); } catch {}
-        if (theme !== 'light' && theme !== 'dark') theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        document.documentElement.dataset.theme = theme;
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#111713' : '#f8faf7');
-      })();
-    </script>
+    <script is:inline set:html={inlineBootstrap} />
   </head>
   <body class:list={{ 'layout-wide': wide }}>
     <a class="skip-link" href="#main-content">跳到正文</a>

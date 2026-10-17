@@ -1,15 +1,19 @@
 ---
-interface Props { name: string; size?: number; class?: string; }
-const { name, size = 20, class: className } = Astro.props;
+interface Props { name: string; size?: number; class?: string; [key: string]: unknown; }
+const { name, size = 20, class: className, ...rest } = Astro.props;
 const paths: Record<string, string> = {
   terminal: 'M3 4h18v16H3V4Zm4 4 4 4-4 4m6 0h4',
   arrow: 'M5 12h14m-6-6 6 6-6 6',
   'arrow-up': 'M7 17 17 7M7 7h10v10',
+  sprout: 'M12 21v-9M6 9c0 3.3 2.7 6 6 6 0-3.3-2.7-6-6-6Zm12 0c0 3.3-2.7 6-6 6 0-3.3 2.7-6 6-6Z',
+  snowflake: 'M12 2v20M3.3 7l17.4 10M20.7 7 3.3 17M12 6 9.6 3.6M12 6l2.4-2.4M12 18l-2.4 2.4M12 18l2.4 2.4',
   chevron: 'm9 5 7 7-7 7',
   back: 'M19 12H5m6-6-6 6 6 6',
   search: 'm21 21-5.2-5.2M19 10.5a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0',
+  // 太阳：夏季用。明暗主题按钮改用下面的 contrast，否则两个太阳挨在一起会分不清。
   sun: 'M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
-  moon: 'M20.98 12.98A9 9 0 0 1 11.02 3.02 9 9 0 1 0 20.98 12.98Z',
+  // 明暗主题的「对比度」图标：圆圈加右半实心，那半块由下面的 fills 补上。
+  contrast: 'M12 3.2a8.8 8.8 0 1 0 0 17.6 8.8 8.8 0 0 0 0-17.6Z',
   rss: 'M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16M5 19a1 1 0 1 1-2 0 1 1 0 0 1 2 0',
   github: 'M9 19c-4.3 1.4-4.3-2.2-6-2.7m12 5v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 19 4.77 5.07 5.07 0 0 0 18.91 1S17.73.65 15 2.48a13.38 13.38 0 0 0-7 0C5.27.65 4.09 1 4.09 1A5.07 5.07 0 0 0 4 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 8 18.13V22',
   mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm18 2-10 7L2 6',
@@ -26,5 +30,9 @@ const paths: Record<string, string> = {
   link: 'M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l2-2',
   book: 'M12 7c-3-3-7-3-10-1v14c3-2 7-2 10 1m0-14c3-3 7-3 10-1v14c-3-2-7-2-10 1V7',
 };
+// 少数图标除了描边还要填一块，目前只有明暗主题的「对比度」图标用得上。
+const fills: Record<string, string> = {
+  contrast: 'M12 3.2a8.8 8.8 0 0 1 0 17.6Z',
+};
 ---
-<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class={className} aria-hidden="true"><path d={paths[name] || paths.sparkle} /></svg>
+<svg {...rest} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class={className} aria-hidden="true"><path d={paths[name] || paths.sparkle} />{fills[name] && <path d={fills[name]} fill="currentColor" stroke="none" />}</svg>

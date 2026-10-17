@@ -6,7 +6,7 @@ const curves = knotCurves();
 <div class="generative-art" id="generative-art">
   <div class="art-eyebrow"><span class="status-dot"></span> 创意编程 <span class="art-coordinate">Fig. 001</span></div>
   <div class="art-canvas-wrap">
-    <svg class="art-guides" viewBox="0 0 480 380" role="img" aria-label="由绿色线条构成的三维三叶结，象征不断探索的灵感">
+    <svg class="art-guides" viewBox="0 0 480 380" role="img" aria-label="由线条构成的三维三叶结，象征不断探索的灵感">
       <defs><radialGradient id="art-halo"><stop offset="0" stop-color="currentColor" stop-opacity=".12" /><stop offset="1" stop-color="currentColor" stop-opacity="0" /></radialGradient></defs>
       <circle cx="240" cy="185" r="185" fill="url(#art-halo)" />
       <g fill="none" stroke="currentColor" stroke-width=".6" opacity=".15">
@@ -49,15 +49,19 @@ const curves = knotCurves();
       if (label) label.textContent = paused ? 'PAUSED' : 'LIVE';
     };
     const draw = () => {
-      const dark = document.documentElement.dataset.theme === 'dark';
+      // 线条颜色取自 --art，四季主题会把它换成当季的颜色；
+      // 深浅用 globalAlpha 控制，就不必去解析 CSS 颜色字符串了。
+      const artColor = getComputedStyle(document.documentElement).getPropertyValue('--art').trim() || '#467953';
       context.clearRect(0, 0, 480, 380);
+      context.strokeStyle = artColor;
       for (const curve of knotCurves(time, tilt)) {
         context.beginPath();
         curve.points.forEach(([x, y], i) => i ? context.lineTo(x, y) : context.moveTo(x, y));
         context.lineWidth = .72;
-        context.strokeStyle = `rgba(${dark ? '131, 196, 157' : '54, 113, 79'}, ${Math.max(.14, Math.min(.78, .42 - curve.depth * .2))})`;
+        context.globalAlpha = Math.max(.14, Math.min(.78, .42 - curve.depth * .2));
         context.stroke();
       }
+      context.globalAlpha = 1;
       art.classList.add('is-rendered');
     };
     const tick = (now: number) => {

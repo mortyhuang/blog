@@ -20,8 +20,45 @@
   --reading-width: 40rem; /* About 40 Chinese characters per line at 16px. */
   --gallery-width: 112.5rem; /* 1800px: visual collections are not reading columns. */
   --gallery-track-min: 18rem; /* 作品卡片的最小宽度，决定画廊一行排几列。 */
+  --on-accent: #f6faf3; /* 实底强调色上的文字，深色模式另需一份 */
   color-scheme: light;
 }
+
+/*
+ * 四季配色。季节只负责色相，明暗仍由 data-theme 决定，两层正交，所以是 4×2 套。
+ *
+ * 顺序有讲究：季节的浅色块必须排在 data-theme='dark' 之前。两者特异度相同(0,2,0)，
+ * 平局靠后者胜出，这样深色模式才不会被浅色季节盖掉；季节的深色块特异度更高(0,3,0)，
+ * 放在最后，四种情况都能落到正确的组合上。
+ *
+ * 每套配色都逐对验过 WCAG AA(4.5:1)，前景/背景的配对清单见 tests/season.spec.ts。
+ * 换季时刻按节气计算，见 src/lib/season-core.js。
+ */
+:root[data-season='spring'] {
+  --bg: #fbfaf4; --surface: #ffffff; --surface-soft: #f1f5e8; --surface-hover: #ecf2e0;
+  --text: #2f3527; --heading: #28301f; --muted: #5c6849; --subtle: #616d4d;
+  --accent: #4d6d2b; --accent-strong: #3f5c22; --accent-soft: #eaf1dd;
+  --line: #e4e8d7; --line-strong: #d2d9c2; --art: #6d9146;
+}
+:root[data-season='summer'] {
+  --bg: #f4faf7; --surface: #ffffff; --surface-soft: #e8f3ee; --surface-hover: #e2efe9;
+  --text: #1f352d; --heading: #173029; --muted: #4a6b5f; --subtle: #4f7063;
+  --accent: #1c7359; --accent-strong: #155c47; --accent-soft: #dff0e8;
+  --line: #d8e8e0; --line-strong: #c3d9cf; --art: #2a8a70;
+}
+:root[data-season='autumn'] {
+  --bg: #fbf7f0; --surface: #fffdf8; --surface-soft: #f5eee1; --surface-hover: #f1e9d8;
+  --text: #3a2f22; --heading: #332719; --muted: #66563f; --subtle: #6a5941;
+  --accent: #8e5114; --accent-strong: #773f0b; --accent-soft: #f6ebd9;
+  --line: #e9dfcd; --line-strong: #dbccb2; --art: #b8722c;
+}
+:root[data-season='winter'] {
+  --bg: #f6f8fa; --surface: #ffffff; --surface-soft: #e9eff4; --surface-hover: #e3ecf2;
+  --text: #25313c; --heading: #1d2a35; --muted: #4f606c; --subtle: #53656f;
+  --accent: #37688b; --accent-strong: #2b5573; --accent-soft: #e2ecf3;
+  --line: #dbe4ea; --line-strong: #c6d4dd; --art: #4a7fa3;
+}
+
 :root[data-theme='dark'] {
   --bg: #111713;
   --surface: #171f19;
@@ -37,11 +74,37 @@
   --line: #2b362a;
   --line-strong: #3c4c36;
   --art: #83c49d;
+  --on-accent: #131b12;
   color-scheme: dark;
 }
+:root[data-season='spring'][data-theme='dark'] {
+  --bg: #0f140d; --surface: #151c13; --surface-soft: #1a2317; --surface-hover: #1f2a1b;
+  --text: #c8d2c0; --heading: #e6ecdf; --muted: #9aa792; --subtle: #93a08b;
+  --accent: #a9c887; --accent-strong: #c0db9f; --accent-soft: #25301f;
+  --line: #2a3623; --line-strong: #3c4a32; --art: #8ec27a;
+}
+:root[data-season='summer'][data-theme='dark'] {
+  --bg: #0c1512; --surface: #121d19; --surface-soft: #17241f; --surface-hover: #1c2b25;
+  --text: #c0d2ca; --heading: #dff0e9; --muted: #93a89f; --subtle: #8ca29a;
+  --accent: #8fc9b0; --accent-strong: #a8dcc5; --accent-soft: #1e2f29;
+  --line: #243430; --line-strong: #354a43; --art: #7fd0b0;
+}
+:root[data-season='autumn'][data-theme='dark'] {
+  --bg: #16110c; --surface: #1d1710; --surface-soft: #241d14; --surface-hover: #2b2318;
+  --text: #d3c7b6; --heading: #efe6d8; --muted: #a99a86; --subtle: #a2947f;
+  --accent: #d3a163; --accent-strong: #e6ba80; --accent-soft: #2e2519;
+  --line: #332a1e; --line-strong: #493c2b; --art: #dda45f;
+}
+:root[data-season='winter'][data-theme='dark'] {
+  --bg: #0e1318; --surface: #141b21; --surface-soft: #192228; --surface-hover: #1e2831;
+  --text: #c2ccd4; --heading: #e2eaf0; --muted: #97a4ae; --subtle: #90a0ab;
+  --accent: #9dc0d8; --accent-strong: #b6d5e8; --accent-soft: #1f2a33;
+  --line: #26313a; --line-strong: #37454f; --art: #8fb8d4;
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 40px; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.65; -webkit-font-smoothing: antialiased; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.65; -webkit-font-smoothing: antialiased; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; transition: background-color .35s ease, color .35s ease; }
 #main-content { flex: 1 0 auto; }
 body.dialog-open { overflow: hidden; }
 ::selection { background: var(--accent-soft); color: var(--accent-strong); }
@@ -75,10 +138,8 @@ h1 { letter-spacing: -.045em; }
 .eyebrow { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; color: var(--muted); font-family: var(--mono); font-size: 10px; font-weight: 400; letter-spacing: 1.5px; }
 .button { display: inline-flex; min-height: 41px; align-items: center; justify-content: center; gap: 19px; padding: 9px 19px; border: 1px solid transparent; border-radius: 5px; font-size: 12px; font-weight: 500; line-height: 1.6; transition: background .18s, color .18s, transform .18s; }
 .button:hover { transform: translateY(-2px); }
-.button-primary { color: #f6faf3; background: #47794b; border-color: #47794b; }
-.button-primary:hover { color: #fff; background: #38653e; border-color: #38653e; }
-[data-theme='dark'] .button-primary { background: #a2c18d; color: #172319; border-color: #a2c18d; }
-[data-theme='dark'] .button-primary:hover { background: #bad5a8; }
+.button-primary { color: var(--on-accent); background: var(--accent-strong); border-color: var(--accent-strong); }
+.button-primary:hover { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
 .button-outline { border-color: var(--line-strong); color: var(--text); }
 .button-outline:hover { background: var(--accent-soft); color: var(--accent); }
 .text-link, .small-link { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
@@ -106,10 +167,27 @@ h1 { letter-spacing: -.045em; }
 kbd { font: 9px var(--mono); padding: 1px 5px; border: 0; border-radius: 3px; background: rgba(0, 0, 0, 0.05); color: var(--text); line-height: 1.4; }
 [data-theme='dark'] kbd { background: rgba(255, 255, 255, 0.08); color: var(--text); }
 .search-trigger kbd { margin-left: 2px; }
-.theme-toggle { width: 30px; height: 30px; border-radius: 999px; background: var(--surface-soft); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); transition: background .18s, color .18s; }
-.theme-toggle:hover { background: var(--surface-hover); color: var(--accent); }
-.theme-toggle .moon-icon, [data-theme='dark'] .theme-toggle .sun-icon { display: none; }
-[data-theme='dark'] .theme-toggle .moon-icon { display: block; }
+.theme-toggle, .season-toggle { width: 30px; height: 30px; border-radius: 999px; background: var(--surface-soft); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); transition: background .18s, color .18s; }
+.theme-toggle:hover, .season-toggle:hover { background: var(--surface-hover); color: var(--accent); }
+
+/* 季节选择器：四个季节的图标都渲染出来，只显示与 data-season 相符的那个，
+   季节变了不需要 JS 换图标。data-season 由 <head> 里的内联脚本在绘制前定好。 */
+.season-picker { position: relative; display: inline-flex; }
+.season-icon { display: none; }
+[data-season='spring'] [data-season-icon='spring'],
+[data-season='summer'] [data-season-icon='summer'],
+[data-season='autumn'] [data-season-icon='autumn'],
+[data-season='winter'] [data-season-icon='winter'],
+:root:not([data-season]) [data-season-icon='spring'] { display: block; }
+.season-menu { position: absolute; z-index: 40; top: calc(100% + 8px); right: 0; width: 172px; padding: 6px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); box-shadow: 0 18px 40px -22px rgba(0, 0, 0, .45); }
+.season-menu-list { display: flex; flex-direction: column; }
+.season-option { display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 9px; border-radius: 5px; font-size: 12px; color: var(--text); text-align: left; transition: background .18s, color .18s; }
+.season-option:hover, .season-option:focus-visible { background: var(--accent-soft); color: var(--accent-strong); }
+.season-option-name { flex: 1; }
+.season-check { color: var(--accent); opacity: 0; }
+.season-option[aria-checked='true'] { color: var(--accent-strong); font-weight: 550; }
+.season-option[aria-checked='true'] .season-check { opacity: 1; }
+.season-menu-divider { height: 1px; margin: 5px 9px; background: var(--line); }
 
 /* Home introduction & living illustration */
 .home-page { width: 100%; max-width: var(--reading-width); margin-inline: auto; }
@@ -159,15 +237,16 @@ kbd { font: 9px var(--mono); padding: 1px 5px; border: 0; border-radius: 3px; ba
 .section-caption { display: inline-flex; gap: 7px; align-items: center; color: var(--subtle); font-size: 10px; }
 .featured-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
 .post-card { min-width: 0; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--surface); transition: border-color .2s, transform .25s, box-shadow .25s; }
-.post-card:hover { border-color: var(--line-strong); transform: translateY(-4px); box-shadow: 0 12px 25px -20px #35553555; }
+.post-card:hover { border-color: var(--line-strong); transform: translateY(-4px); box-shadow: 0 12px 25px -20px rgba(0, 0, 0, .22); box-shadow: 0 12px 25px -20px color-mix(in srgb, var(--accent-strong) 30%, transparent); }
 .card-cover-link { position: relative; display: block; overflow: hidden; }
 .cover-art { width: 100%; aspect-ratio: 560 / 230; position: relative; overflow: hidden; }
 .cover-art svg { width: 100%; height: 100%; transition: transform .65s cubic-bezier(.2,.7,.2,1); }
 .post-card:hover .cover-art svg { transform: scale(1.025); }
 [data-theme='dark'] .cover-art svg { filter: brightness(.78) saturate(.75); }
-.card-index { position: absolute; right: 18px; bottom: 15px; font: 10px var(--mono); border: 1px solid #536e4d50; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; color: #47634b; }
+.card-index { position: absolute; right: 18px; bottom: 15px; font: 10px var(--mono); border: 1px solid var(--line-strong); border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; color: var(--accent-strong); }
+/* 轨道封面自带一套固定的紫调插画，角标跟着插画走，不随季节换色。 */
 .cover-orbit + .card-index { border-color: #77719b50; color: #77719b; }
-.card-cover-arrow { position: absolute; top: 12px; right: 12px; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: #ffffff55; color: #47634b; opacity: 0; transform: translate(-3px,3px); transition: transform .2s, opacity .2s; }
+.card-cover-arrow { position: absolute; top: 12px; right: 12px; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: #ffffff55; color: var(--accent-strong); opacity: 0; transform: translate(-3px,3px); transition: transform .2s, opacity .2s; }
 .post-card:hover .card-cover-arrow { opacity: 1; transform: none; }
 .card-body { padding: 21px 23px 22px; }
 .post-meta { display: flex; align-items: center; gap: 8px; font-size: 9px; color: var(--muted); font-family: var(--mono); letter-spacing: 0; }
@@ -361,8 +440,6 @@ kbd { font: 9px var(--mono); padding: 1px 5px; border: 0; border-radius: 3px; ba
 .about-copy li { margin-top: 10px; }
 .about-contact { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px !important; }
 .about-contact .button { text-decoration: none; font-size: 12px; gap: 8px; }
-.about-contact .button-primary { color: #f6faf3; }
-[data-theme='dark'] .about-contact .button-primary { color: #172319; }
 .not-found { min-height: 590px; padding: 65px 0 40px; text-align: center; }
 .not-found-code { color: var(--subtle); font-size: 10px; letter-spacing: 2px; }
 .not-found .large-sparkle { margin-top: 42px; }
@@ -371,8 +448,8 @@ kbd { font: 9px var(--mono); padding: 1px 5px; border: 0; border-radius: 3px; ba
 .not-found .hero-actions { justify-content: center; margin-top: 28px; }
 
 /* Full, accessible search dialog */
-.search-dialog { width: min(620px,calc(100% - 32px)); margin: 13vh auto auto; padding: 0; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--surface); color: var(--text); box-shadow: 0 30px 90px #12221933; max-height: 75vh; overflow: hidden; }
-.search-dialog::backdrop { background: #182c2470; backdrop-filter: blur(7px); }
+.search-dialog { width: min(620px,calc(100% - 32px)); margin: 13vh auto auto; padding: 0; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--surface); color: var(--text); box-shadow: 0 30px 90px rgba(0, 0, 0, .22); box-shadow: 0 30px 90px color-mix(in srgb, var(--text) 22%, transparent); max-height: 75vh; overflow: hidden; }
+.search-dialog::backdrop { background: rgba(0, 0, 0, .45); background: color-mix(in srgb, var(--text) 45%, transparent); backdrop-filter: blur(7px); }
 .search-input-wrap { display: flex; align-items: center; gap: 15px; padding: 18px 20px; border-bottom: 1px solid var(--line); color: var(--accent); }
 .search-input-wrap input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 14px; padding: 5px 0; }
 .search-input-wrap input::placeholder { color: var(--subtle); }
@@ -610,7 +687,13 @@ kbd { font: 9px var(--mono); padding: 1px 5px; border: 0; border-radius: 3px; ba
 }
 @media print {
   .site-header, .site-footer, .toc, .reading-progress, .back-link, .article-footer .button, .shader-playground, .code-copy { display: none !important; }
-  :root, :root[data-theme='dark'] { --bg: white; --text: black; --heading: black; --muted: #555; }
+  /* 季节块特异度最高到 (0,3,0)，这里用同样高的选择器 + 更靠后的位置压回去。 */
+  :root, :root[data-theme], :root[data-theme][data-season] {
+    --bg: white; --surface: white; --surface-soft: white; --surface-hover: white;
+    --text: black; --heading: black; --muted: #555; --subtle: #666;
+    --accent: black; --accent-strong: black; --accent-soft: white; --on-accent: white;
+    --line: #ccc; --line-strong: #999; --art: black;
+  }
   .container, .layout-wide > main.container { width: 100%; }
   .reading-layout { display: block; }
   .post-detail-cover { max-height: 180px; }
