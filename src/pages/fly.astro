@@ -1,0 +1,1367 @@
+---
+// 独立全屏游戏路由：/fly/
+---
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Flappy K-Line | K线跳跳乐</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0b0e14;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "JetBrains Mono", monospace;
+      color: #eaecef;
+    }
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at 50% 50%, #151924 0%, #080a0f 100%);
+    }
+    canvas {
+      display: block;
+      background-color: #0d1117;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+      cursor: pointer;
+    }
+    /* UI 悬浮顶栏 */
+    .top-bar {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .market-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(18, 22, 34, 0.85);
+      backdrop-filter: blur(8px);
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+    .market-badge .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .market-ticker {
+      font-weight: 700;
+      color: #f3f4f6;
+    }
+    .market-timeframe {
+      color: #9ca3af;
+      font-size: 11px;
+      padding: 2px 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+    }
+
+    .controls-panel {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .btn-icon {
+      background: rgba(18, 22, 34, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #d1d5db;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover {
+      background: rgba(30, 36, 52, 0.95);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* 纯正复古像素结算面板 (完全致敬原版 Flappy Bird) */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(2px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+    .pixel-board-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: pixelDrop 0.28s cubic-bezier(0.18, 0.89, 0.32, 1.25);
+    }
+    @keyframes pixelDrop {
+      0% { opacity: 0; transform: translateY(-35px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .pixel-gameover-title {
+      font-size: 38px;
+      font-weight: 900;
+      font-family: -apple-system, "JetBrains Mono", sans-serif;
+      letter-spacing: 2px;
+      color: #fc5252;
+      text-shadow:
+        2px 2px 0 #543847,
+        -2px -2px 0 #543847,
+        2px -2px 0 #543847,
+        -2px 2px 0 #543847,
+        0 4px 0 #1f1118;
+      margin-bottom: 16px;
+      user-select: none;
+    }
+    .pixel-scoreboard {
+      position: relative;
+      width: 250px;
+      background: #ded895; /* 原版经典复古米黄纸板色 */
+      border: 3px solid #543847;
+      box-shadow: inset 0 0 0 2px #fff, 0 5px 0 #2a1b24;
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+    .board-col-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 72px;
+      border-right: 2px dashed rgba(84, 56, 71, 0.3);
+      padding-right: 12px;
+    }
+    .board-col-right {
+      flex: 1;
+      padding-left: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      justify-content: center;
+    }
+    .pixel-label {
+      font-size: 11px;
+      font-weight: 900;
+      color: #e86100;
+      letter-spacing: 1px;
+      font-family: "JetBrains Mono", monospace;
+      text-shadow: 1px 1px 0 #fff;
+    }
+    .pixel-medal {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid #543847;
+      background: #cbb880;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 6px;
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), 0 2px 0 rgba(0, 0, 0, 0.2);
+      font-size: 22px;
+    }
+    .pixel-medal.empty { background: #b8aa75; }
+    .pixel-medal.bronze { background: #cd7f32; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), 0 0 6px #cd7f32; }
+    .pixel-medal.silver { background: #c0c0c0; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.7), 0 0 8px #c0c0c0; }
+    .pixel-medal.gold { background: #ffd700; box-shadow: inset 0 2px 0 #fff, 0 0 10px rgba(255, 215, 0, 0.7); }
+    .pixel-medal.platinum { background: #70d6ff; box-shadow: inset 0 2px 0 #fff, 0 0 12px rgba(112, 214, 255, 0.9); }
+
+    .score-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .pixel-score-num {
+      font-size: 20px;
+      font-weight: 900;
+      font-family: "JetBrains Mono", monospace;
+      color: #543847;
+      text-shadow: 1px 1px 0 #fff;
+    }
+    .pixel-roi-num {
+      font-size: 13px;
+      font-weight: 800;
+      font-family: "JetBrains Mono", monospace;
+      color: #10b981;
+      text-shadow: 1px 1px 0 #fff;
+    }
+    .pixel-new-spark {
+      position: absolute;
+      top: -8px;
+      right: 14px;
+      background: #f83838;
+      border: 2px solid #543847;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 900;
+      padding: 1px 5px;
+      border-radius: 3px;
+      transform: rotate(6deg);
+      box-shadow: 0 2px 0 #543847;
+      animation: pulseNew 0.6s infinite alternate;
+    }
+    @keyframes pulseNew {
+      from { transform: rotate(6deg) scale(1); }
+      to { transform: rotate(6deg) scale(1.1); }
+    }
+    .pixel-start-btn {
+      width: 120px;
+      padding: 10px 0;
+      background: #e86100;
+      border: 2px solid #543847;
+      border-radius: 5px;
+      box-shadow: inset 0 2px 0 #ffa843, 0 4px 0 #543847;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 900;
+      color: #fff;
+      font-family: -apple-system, "JetBrains Mono", sans-serif;
+      text-shadow: 1px 1px 0 #543847;
+      letter-spacing: 1px;
+      transition: all 0.08s ease;
+    }
+    .pixel-start-btn:hover {
+      background: #fa7211;
+      transform: translateY(-1px);
+      box-shadow: inset 0 2px 0 #ffa843, 0 5px 0 #543847;
+    }
+    .pixel-start-btn:active {
+      transform: translateY(3px);
+      box-shadow: inset 0 1px 0 #ffa843, 0 1px 0 #543847;
+    }
+
+    /* 快捷提示 */
+    .tips-hud {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: #64748b;
+      letter-spacing: 0.5px;
+      pointer-events: none;
+    }
+    kbd {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: inherit;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <!-- 顶部状态栏 -->
+    <div class="top-bar">
+      <div class="market-badge">
+        <span class="pulse-dot"></span>
+        <span class="market-ticker">BIRD/USDT</span>
+        <span class="market-timeframe">1s • 逐笔走势</span>
+        <span id="header-price" style="font-weight: 700; color: #0ecb81; margin-left: 6px;">$68,420.00</span>
+      </div>
+      <div class="controls-panel">
+        <button id="btn-theme-color" class="btn-icon" title="切换红绿涨跌习惯">
+          <span>🎨</span> <span id="theme-color-label">绿涨红跌(国际)</span>
+        </button>
+        <button id="btn-sound" class="btn-icon" title="开关音效">
+          <span id="sound-icon">🔊</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 游戏画布 -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 底部操作提示 -->
+    <div class="tips-hud">
+      按 <kbd>空格</kbd> / 点击屏幕扑动 • 飞过的地方将生成你的专属 K 线走势
+    </div>
+
+    <!-- 原版街机像素结算框 -->
+    <div id="gameover-modal" class="modal-overlay">
+      <div class="pixel-board-container">
+        <div class="pixel-gameover-title">GAME OVER</div>
+
+        <div class="pixel-scoreboard">
+          <!-- 左侧奖牌槽 -->
+          <div class="board-col-left">
+            <span class="pixel-label">MEDAL</span>
+            <div id="medal-slot" class="pixel-medal empty">
+              <span id="medal-icon"></span>
+            </div>
+          </div>
+
+          <!-- 右侧数据 -->
+          <div class="board-col-right">
+            <div class="score-line">
+              <span class="pixel-label">SCORE</span>
+              <span id="modal-score" class="pixel-score-num">0</span>
+            </div>
+            <div class="score-line">
+              <span class="pixel-label">BEST</span>
+              <span id="modal-best" class="pixel-score-num">0</span>
+            </div>
+            <div class="score-line">
+              <span class="pixel-label">PROFIT</span>
+              <span id="modal-roi" class="pixel-roi-num">+0%</span>
+            </div>
+          </div>
+
+          <!-- 新纪录标签 -->
+          <div id="new-record-tag" class="pixel-new-spark" style="display: none;">NEW</div>
+        </div>
+
+        <button id="btn-restart" class="pixel-start-btn">
+          <span>OK</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    // --- 音效合成器 (Web Audio API) ---
+    class AudioSynthesizer {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playFlap() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(750, now + 0.08);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.09);
+        } catch (e) {}
+      }
+      playScore() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(987.77, now); // B5
+          osc.frequency.setValueAtTime(1318.51, now + 0.06); // E6
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        } catch (e) {}
+      }
+      playLiquidated() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          // 噪音爆炸
+          const bufferSize = this.ctx.sampleRate * 0.3;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(800, now);
+          filter.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start(now);
+        } catch (e) {}
+      }
+    }
+
+    const sound = new AudioSynthesizer();
+
+    // --- 游戏主控制器 ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const headerPriceEl = document.getElementById('header-price');
+    const themeColorLabel = document.getElementById('theme-color-label');
+    const btnThemeColor = document.getElementById('btn-theme-color');
+    const btnSound = document.getElementById('btn-sound');
+    const soundIcon = document.getElementById('sound-icon');
+    const modal = document.getElementById('gameover-modal');
+    const btnRestart = document.getElementById('btn-restart');
+
+    const modalScore = document.getElementById('modal-score');
+    const modalRoi = document.getElementById('modal-roi');
+    const modalBest = document.getElementById('modal-best');
+    const medalSlot = document.getElementById('medal-slot');
+    const medalIcon = document.getElementById('medal-icon');
+    const newRecordTag = document.getElementById('new-record-tag');
+
+    // 配色方案：isChinaStyle: false = 绿涨红跌 (国际), true = 红涨绿跌 (A股)
+    let isChinaStyle = false;
+
+    function getColors() {
+      if (!isChinaStyle) {
+        return {
+          up: '#0ecb81',     // 绿色 (涨)
+          down: '#f6465d',   // 红色 (跌)
+          upGlow: 'rgba(14, 203, 129, 0.4)',
+          downGlow: 'rgba(246, 70, 93, 0.4)'
+        };
+      } else {
+        return {
+          up: '#f6465d',     // 红色 (涨)
+          down: '#0ecb81',   // 绿色 (跌)
+          upGlow: 'rgba(246, 70, 93, 0.4)',
+          downGlow: 'rgba(14, 203, 129, 0.4)'
+        };
+      }
+    }
+
+    // --- 原版 100% 像素级 Flappy Bird 精灵生成器 (精准复刻 Dong Nguyen 原作 34x24 点阵) ---
+    function createOriginalFlappyBirdSprites() {
+      const PALETTE = {
+        '.': null,
+        'B': '#543847', // 原版经典深黑咖色描边 (非纯黑，具有原版复古厚重感)
+        'Y': '#f8e038', // 原版经典高亮黄色
+        'D': '#e89020', // 原版暗黄色阴影
+        'W': '#ffffff', // 原版眼睛眼白与高光
+        'K': '#543847', // 原版垂直黑色瞳孔
+        'O': '#f8a020', // 标志性厚嘴唇亮橙
+        'R': '#e85820', // 标志性厚嘴唇暗红橙
+        'G': '#d8d8d8'  // 腹部与翅膀微阴影
+      };
+
+      // Frame 0: 翅膀扑下 (Down flap)
+      const fDown = [
+        "..................................",
+        "............BBBBBBB...............",
+        "..........BBYYYYYYYB..............",
+        ".........BYYYYYYYYYYB.BBBBBB......",
+        "........BYYYYYYYYYYYBWWWWWWWB.....",
+        ".......BYYYYYYYYYYYBWWWWKWWWWB....",
+        ".......BYYYYYYYYYYYBWWWWKWWWWB....",
+        "........BYYYYYYYYYYBWWWWKWWWWB....",
+        ".........BYYYYYYYYYYBWWWWWWWWB....",
+        "..........BYYYYYYYYYYBBBBBBBB.....",
+        "..BBBB....BYYYYYYYYYYYBOOOOOOOB...",
+        ".BWWWB...BYYYYYYYYYYYYBOOOOOOOOB..",
+        "BWWWWWB.BBDDDDDDDDDDDDBOOOOOOOOB..",
+        "BWWWWWWBBDDDDDDDDDDDDDBBBBBBBBBB..",
+        ".BWWWWWBDDDDDDDDDDDDDDBRRRRRRRRB..",
+        "..BBBBBDDDDDDDDDDDDDDDBRRRRRRRRB..",
+        "......BBDDDDDDDDDDDDDDDBBBBBBBBB..",
+        ".......BBDDDDDDDDDDDDB............",
+        "........BBWWWWWWWWWWBB............",
+        ".........BBWWWWWWWWBB.............",
+        "..........BBBBBBBBBB..............",
+        "..................................",
+        "..................................",
+        ".................................."
+      ];
+
+      // Frame 1: 翅膀居中平展 (Mid flap)
+      const fMid = [
+        "..................................",
+        "............BBBBBBB...............",
+        "..........BBYYYYYYYB..............",
+        ".........BYYYYYYYYYYB.BBBBBB......",
+        "........BYYYYYYYYYYYBWWWWWWWB.....",
+        ".......BYYYYYYYYYYYBWWWWKWWWWB....",
+        ".......BYYYYYYYYYYYBWWWWKWWWWB....",
+        "........BYYYYYYYYYYBWWWWKWWWWB....",
+        "..BBBBB..BYYYYYYYYYYBWWWWWWWWB....",
+        ".BWWWWWB..BYYYYYYYYYYBBBBBBBB.....",
+        "BWWWWWWWB.BYYYYYYYYYYYBOOOOOOOB...",
+        "BWWWWWWWWBBYYYYYYYYYYYBOOOOOOOOB..",
+        ".BWWWWWWWBBDDDDDDDDDDDBOOOOOOOOB..",
+        "..BBBBBBBBDDDDDDDDDDDDBBBBBBBBBB..",
+        "........BBDDDDDDDDDDDDBRRRRRRRRB..",
+        ".......BBDDDDDDDDDDDDDBRRRRRRRRB..",
+        "......BBDDDDDDDDDDDDDDDBBBBBBBBB..",
+        ".......BBDDDDDDDDDDDDB............",
+        "........BBWWWWWWWWWWBB............",
+        ".........BBWWWWWWWWBB.............",
+        "..........BBBBBBBBBB..............",
+        "..................................",
+        "..................................",
+        ".................................."
+      ];
+
+      // Frame 2: 翅膀扬起 (Up flap)
+      const fUp = [
+        "..................................",
+        "............BBBBBBB...............",
+        "..........BBYYYYYYYB..............",
+        "..BBBBB..BYYYYYYYYYYB.BBBBBB......",
+        ".BWWWWWBBYYYYYYYYYYYBWWWWWWWB.....",
+        "BWWWWWWWBBYYYYYYYYYBWWWWKWWWWB....",
+        "BWWWWWWWWBBYYYYYYYYBWWWWKWWWWB....",
+        ".BWWWWWWWBBYYYYYYYYBWWWWKWWWWB....",
+        "..BBBBBBBBBYYYYYYYYYBWWWWWWWWB....",
+        "........BYYYYYYYYYYYYBBBBBBBB.....",
+        ".......BYYYYYYYYYYYYYYBOOOOOOOB...",
+        "......BYYYYYYYYYYYYYYYBOOOOOOOOB..",
+        ".....BYYYYBDDDDDDDDDDDBOOOOOOOOB..",
+        "....BYYYYBBDDDDDDDDDDDBBBBBBBBBB..",
+        "....BBBBBBDDDDDDDDDDDDBRRRRRRRRB..",
+        ".......BBDDDDDDDDDDDDDBRRRRRRRRB..",
+        "......BBDDDDDDDDDDDDDDDBBBBBBBBB..",
+        ".......BBDDDDDDDDDDDDB............",
+        "........BBWWWWWWWWWWBB............",
+        ".........BBWWWWWWWWBB.............",
+        "..........BBBBBBBBBB..............",
+        "..................................",
+        "..................................",
+        ".................................."
+      ];
+
+      function renderMatrix(matrix) {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = 34;
+        offCanvas.height = 24;
+        const octx = offCanvas.getContext('2d');
+        for (let y = 0; y < 24; y++) {
+          const row = matrix[y];
+          for (let x = 0; x < 34; x++) {
+            const ch = row[x] || '.';
+            const col = PALETTE[ch];
+            if (col) {
+              octx.fillStyle = col;
+              octx.fillRect(x, y, 1, 1);
+            }
+          }
+        }
+        return offCanvas;
+      }
+
+      return [renderMatrix(fDown), renderMatrix(fMid), renderMatrix(fUp)];
+    }
+
+    const originalBirdFrames = createOriginalFlappyBirdSprites();
+
+    btnThemeColor.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isChinaStyle = !isChinaStyle;
+      themeColorLabel.textContent = isChinaStyle ? '红涨绿跌(A股)' : '绿涨红跌(国际)';
+    });
+
+    btnSound.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sound.enabled = !sound.enabled;
+      soundIcon.textContent = sound.enabled ? '🔊' : '🔇';
+    });
+
+    // 适配高清屏幕与视口
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+
+    function resize() {
+      const container = document.getElementById('game-container');
+      const rect = container.getBoundingClientRect();
+      dpr = window.devicePixelRatio || 1;
+      width = rect.width;
+      height = rect.height;
+
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resize);
+
+    // --- 游戏物理与参数 ---
+    const BASE_PRICE = 68420.00;
+    const PRICE_STEP_PER_PIXEL = 25.0; // 越往上价格越高
+
+    let state = 'READY'; // READY, PLAYING, GAMEOVER
+    let score = 0;
+    let highScore = parseInt(localStorage.getItem('flappy_kline_best') || '0', 10);
+    let athPrice = BASE_PRICE;
+    let currentPrice = BASE_PRICE;
+
+    // 小鸟属性 (优化重力与手感，避免下落过快暴跌)
+    const bird = {
+      x: 0,
+      y: 0,
+      radius: 18,
+      velocity: 0,
+      gravity: 0.22,      // 降低重力 (原 0.42)，下落更轻盈平缓
+      jump: -5.4,         // 调整跳跃力度 (原 -7.6)，手感跟手不冲顶
+      maxDropSpeed: 5.5,  // 限制最大下落速度，防止失速下坠
+      rotation: 0,
+      wingCycle: 0
+    };
+
+    // 历史走过的K线列表（小鸟经过的地方生成K线）
+    // 每根K线: { worldX, openPrice, highPrice, lowPrice, closePrice, openY, highY, lowY, closeY, width }
+    let trailCandles = [];
+    let currentCandleBuilder = null;
+    const CANDLE_STEP = 36; // 小鸟每前进 36px 封盘结成一根K线
+
+    // 障碍物K线对（大级别支撑与阻力K线门）
+    // 每个障碍: { worldX, gapY, gapHeight, width, passed, topCandle, bottomCandle }
+    let obstacles = [];
+    const OBSTACLE_GAP_X = 320; // 障碍物横向间距 (放宽，留出充分反应时间)
+    let worldDistance = 0;      // 世界向左移动的总距离
+    const WORLD_SPEED = 1.6;    // 卷轴前进速度 (调整为 1.6)
+
+    // 粒子系统
+    let particles = [];
+
+    // 重置并初始化游戏
+    function initGame() {
+      resize();
+      bird.x = Math.max(80, width * 0.22);
+      bird.y = height * 0.5;
+      bird.velocity = 0;
+      bird.rotation = 0;
+      bird.wingCycle = 0;
+
+      score = 0;
+      worldDistance = 0;
+      currentPrice = BASE_PRICE;
+      athPrice = BASE_PRICE;
+      trailCandles = [];
+      obstacles = [];
+      particles = [];
+
+      // 创建初始的正在构建的K线
+      startNewLiveCandle(bird.y);
+
+      // 预先生成前方障碍物 (首个障碍留出充分起飞跑道)
+      for (let i = 0; i < 4; i++) {
+        spawnObstacle(width + 360 + i * OBSTACLE_GAP_X);
+      }
+
+      modal.style.display = 'none';
+      state = 'READY'; // 保持准备悬浮状态，绝不自动掉落
+    }
+
+    // 像素转价格：Y越小（越高），价格越高
+    function yToPrice(y) {
+      const deltaY = (height * 0.5) - y;
+      return Math.max(100, BASE_PRICE + deltaY * PRICE_STEP_PER_PIXEL);
+    }
+
+    function startNewLiveCandle(currentY) {
+      const price = yToPrice(currentY);
+      currentCandleBuilder = {
+        worldStartX: worldDistance,
+        openY: currentY,
+        closeY: currentY,
+        minY: currentY, // 视觉上最顶端对应 High Price
+        maxY: currentY, // 视觉上最低端对应 Low Price
+        openPrice: price,
+        closePrice: price,
+        highPrice: price,
+        lowPrice: price
+      };
+    }
+
+    function updateLiveCandle(currentY) {
+      if (!currentCandleBuilder) return;
+      currentCandleBuilder.closeY = currentY;
+      currentCandleBuilder.minY = Math.min(currentCandleBuilder.minY, currentY);
+      currentCandleBuilder.maxY = Math.max(currentCandleBuilder.maxY, currentY);
+
+      const price = yToPrice(currentY);
+      currentCandleBuilder.closePrice = price;
+      currentCandleBuilder.highPrice = Math.max(currentCandleBuilder.highPrice, price);
+      currentCandleBuilder.lowPrice = Math.min(currentCandleBuilder.lowPrice, price);
+      currentPrice = price;
+      if (price > athPrice) athPrice = price;
+
+      // 如果世界行进达到 CANDLE_STEP，封存当前K线，开始下一根！
+      if (worldDistance - currentCandleBuilder.worldStartX >= CANDLE_STEP) {
+        trailCandles.push({
+          worldX: currentCandleBuilder.worldStartX,
+          openY: currentCandleBuilder.openY,
+          closeY: currentCandleBuilder.closeY,
+          highY: currentCandleBuilder.minY,
+          lowY: currentCandleBuilder.maxY,
+          openPrice: currentCandleBuilder.openPrice,
+          closePrice: currentCandleBuilder.closePrice,
+          highPrice: currentCandleBuilder.highPrice,
+          lowPrice: currentCandleBuilder.lowPrice,
+          width: CANDLE_STEP * 0.72
+        });
+        startNewLiveCandle(currentY);
+
+        // 控制缓存数量，移出屏幕太远的销毁
+        if (trailCandles.length > 80) {
+          trailCandles.shift();
+        }
+      }
+    }
+
+    // 生成K线障碍对
+    function spawnObstacle(screenX) {
+      // 穿行通道高度：加大安全缺口，让飞行更丝滑友好
+      const gapHeight = Math.max(175, Math.min(250, height * 0.35 - Math.min(score * 1.2, 45)));
+      const minY = 100;
+      const maxY = height - gapHeight - 100;
+      const gapY = minY + Math.random() * (maxY - minY);
+      const candleWidth = 52;
+
+      // 决定阻力位和支撑位的色彩形态（带随机影线设计）
+      const topIsBullish = Math.random() > 0.5;
+      const bottomIsBullish = Math.random() > 0.5;
+
+      obstacles.push({
+        worldX: screenX + worldDistance,
+        gapY: gapY,
+        gapHeight: gapHeight,
+        width: candleWidth,
+        passed: false,
+        topIsBullish: topIsBullish,
+        bottomIsBullish: bottomIsBullish,
+        // 上阻力位影线与实体比例
+        topWickExtend: 20 + Math.random() * 25,
+        bottomWickExtend: 20 + Math.random() * 25
+      });
+    }
+
+    // 操作扑动
+    function flap() {
+      sound.init();
+      if (state === 'READY') {
+        state = 'PLAYING';
+      }
+      if (state === 'PLAYING') {
+        bird.velocity = bird.jump;
+        sound.playFlap();
+
+        // 喷射粒子
+        const colors = getColors();
+        for (let i = 0; i < 6; i++) {
+          particles.push({
+            x: bird.x - 12,
+            y: bird.y + (Math.random() - 0.5) * 10,
+            vx: -Math.random() * 4 - 2,
+            vy: (Math.random() - 0.5) * 3,
+            radius: Math.random() * 3.5 + 1.5,
+            color: Math.random() > 0.4 ? colors.up : '#f0b90b',
+            alpha: 1,
+            decay: 0.035
+          });
+        }
+      }
+    }
+
+    // 触发爆仓 Game Over
+    function triggerGameOver() {
+      if (state === 'GAMEOVER') return;
+      state = 'GAMEOVER';
+      sound.playLiquidated();
+
+      // 爆仓大爆炸粒子
+      const colors = getColors();
+      for (let i = 0; i < 40; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 8 + 2;
+        particles.push({
+          x: bird.x,
+          y: bird.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: Math.random() * 5 + 2,
+          color: Math.random() > 0.5 ? colors.down : '#f0b90b',
+          alpha: 1,
+          decay: Math.random() * 0.02 + 0.015
+        });
+      }
+
+      // 计算战绩与新纪录判定
+      let isNewRecord = false;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('flappy_kline_best', highScore.toString());
+        if (score > 0) isNewRecord = true;
+      }
+
+      // 计算本轮收益率
+      const baseReturn = score * 15.0;
+      const totalRoi = Math.round(baseReturn * 10) / 10;
+
+      modalScore.textContent = score;
+      modalBest.textContent = highScore;
+      modalRoi.textContent = `+${totalRoi}%`;
+      modalRoi.style.color = isChinaStyle ? '#fc5252' : '#10b981';
+
+      // 奖牌评定 (原版阶梯：铜牌 >= 5, 银牌 >= 10, 金牌 >= 20, 铂金 >= 35)
+      medalSlot.className = 'pixel-medal empty';
+      medalIcon.textContent = '';
+      if (score >= 35) {
+        medalSlot.className = 'pixel-medal platinum';
+        medalIcon.textContent = '💎';
+      } else if (score >= 20) {
+        medalSlot.className = 'pixel-medal gold';
+        medalIcon.textContent = '🥇';
+      } else if (score >= 10) {
+        medalSlot.className = 'pixel-medal silver';
+        medalIcon.textContent = '🥈';
+      } else if (score >= 5) {
+        medalSlot.className = 'pixel-medal bronze';
+        medalIcon.textContent = '🥉';
+      }
+
+      newRecordTag.style.display = isNewRecord ? 'block' : 'none';
+
+      setTimeout(() => {
+        modal.style.display = 'flex';
+      }, 450);
+    }
+
+    // --- 绘图函数 ---
+
+    // 绘制暗黑背景网格与行情刻度线
+    function drawBackgroundGrid() {
+      ctx.fillStyle = '#0b0e14';
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.lineWidth = 1;
+
+      // 横向水平价格参考线
+      const gridSpacingY = 60;
+      for (let y = gridSpacingY; y < height; y += gridSpacingY) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+
+        // 价格标签 (右侧刻度)
+        const priceAtLine = yToPrice(y);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+        ctx.font = '10px "JetBrains Mono", monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(`$${priceAtLine.toFixed(0)}`, width - 12, y - 4);
+      }
+
+      // 纵向时间走势网格线（随世界卷轴滚动）
+      const gridSpacingX = 80;
+      const offsetX = worldDistance % gridSpacingX;
+      for (let x = -offsetX; x < width; x += gridSpacingX) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+
+      // 底部微型成交量柱状背景 (Volume bars decoration)
+      const volWidth = 14;
+      const numVols = Math.ceil(width / (volWidth + 4));
+      const colors = getColors();
+      for (let i = 0; i < numVols; i++) {
+        const vx = i * (volWidth + 4) - (worldDistance * 0.8 % (volWidth + 4));
+        const pseudoRand = Math.sin((worldDistance * 0.02 + i) * 1.5);
+        const vHeight = 15 + Math.abs(pseudoRand) * 45;
+        const isUp = pseudoRand > 0;
+        ctx.fillStyle = isUp ? colors.up : colors.down;
+        ctx.globalAlpha = 0.08;
+        ctx.fillRect(vx, height - vHeight, volWidth, vHeight);
+      }
+      ctx.restore();
+    }
+
+    // 绘制小鸟身后走出的 K 线图与均线 (The Signature Trail)
+    function drawTrailCandles() {
+      const colors = getColors();
+      ctx.save();
+
+      // 1. 绘制均线 MA (平滑连接所有K线的收盘价)
+      const allPoints = [];
+      for (let i = 0; i < trailCandles.length; i++) {
+        const c = trailCandles[i];
+        const screenX = bird.x - (worldDistance - c.worldX);
+        if (screenX > -100 && screenX < width + 100) {
+          allPoints.push({ x: screenX, y: (c.openY + c.closeY) / 2 });
+        }
+      }
+      if (currentCandleBuilder) {
+        allPoints.push({ x: bird.x, y: currentCandleBuilder.closeY });
+      }
+
+      if (allPoints.length > 2) {
+        // MA7 均线 (亮黄色)
+        ctx.strokeStyle = '#f0b90b';
+        ctx.lineWidth = 1.8;
+        ctx.globalAlpha = 0.75;
+        ctx.beginPath();
+        ctx.moveTo(allPoints[0].x, allPoints[0].y);
+        for (let i = 1; i < allPoints.length; i++) {
+          ctx.lineTo(allPoints[i].x, allPoints[i].y);
+        }
+        ctx.stroke();
+
+        // 均线光晕
+        ctx.strokeStyle = 'rgba(240, 185, 11, 0.25)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+
+      // 2. 绘制已经封盘的每根历史K线
+      for (let i = 0; i < trailCandles.length; i++) {
+        const c = trailCandles[i];
+        // 映射到屏幕坐标：小鸟固定在 bird.x，所以世界坐标转化：
+        const screenX = bird.x - (worldDistance - c.worldX);
+        if (screenX < -60 || screenX > width + 60) continue;
+
+        const isBull = c.closePrice >= c.openPrice;
+        const color = isBull ? colors.up : colors.down;
+        const glow = isBull ? colors.upGlow : colors.downGlow;
+
+        // 影线 (Wick)
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(screenX, c.highY);
+        ctx.lineTo(screenX, c.lowY);
+        ctx.stroke();
+
+        // 蜡烛实体 (Body)
+        const bodyTop = Math.min(c.openY, c.closeY);
+        const bodyHeight = Math.max(3, Math.abs(c.closeY - c.openY));
+        const bodyWidth = c.width;
+
+        ctx.fillStyle = color;
+        ctx.shadowColor = glow;
+        ctx.shadowBlur = 6;
+        ctx.fillRect(screenX - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
+        ctx.shadowBlur = 0;
+
+        // 边框描边增加立体感
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(screenX - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
+      }
+
+      // 3. 绘制当前正在实时走动的新K线 (Live candle at bird position)
+      if (currentCandleBuilder) {
+        const screenX = bird.x;
+        const isBull = currentCandleBuilder.closePrice >= currentCandleBuilder.openPrice;
+        const color = isBull ? colors.up : colors.down;
+        const glow = isBull ? colors.upGlow : colors.downGlow;
+
+        // 实时影线
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(screenX, currentCandleBuilder.minY);
+        ctx.lineTo(screenX, currentCandleBuilder.maxY);
+        ctx.stroke();
+
+        // 实时烛身
+        const bodyTop = Math.min(currentCandleBuilder.openY, currentCandleBuilder.closeY);
+        const bodyHeight = Math.max(3, Math.abs(currentCandleBuilder.closeY - currentCandleBuilder.openY));
+        const bodyWidth = CANDLE_STEP * 0.72;
+
+        ctx.fillStyle = color;
+        ctx.shadowColor = glow;
+        ctx.shadowBlur = 10;
+        ctx.fillRect(screenX - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
+        ctx.shadowBlur = 0;
+
+        // 实时呼吸外框
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(screenX - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
+      }
+
+      ctx.restore();
+    }
+
+    // 绘制障碍物（巨型K线柱）
+    function drawObstacles() {
+      const colors = getColors();
+      ctx.save();
+
+      for (let i = 0; i < obstacles.length; i++) {
+        const obs = obstacles[i];
+        const screenX = obs.worldX - worldDistance;
+        if (screenX < -100 || screenX > width + 100) continue;
+
+        const gapTop = obs.gapY;
+        const gapBottom = obs.gapY + obs.gapHeight;
+        const w = obs.width;
+
+        // --- 上半部阻力K线柱 (从顶部往下伸展到 gapTop) ---
+        const topColor = obs.topIsBullish ? colors.up : colors.down;
+        const topGlow = obs.topIsBullish ? colors.upGlow : colors.downGlow;
+
+        // 阻力位长下影线（往下刺入通道上方）
+        ctx.strokeStyle = topColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(screenX + w / 2, 0);
+        ctx.lineTo(screenX + w / 2, gapTop);
+        ctx.stroke();
+
+        // 上部实体蜡烛 (留出小段影线露在外面)
+        const topBodyHeight = Math.max(20, gapTop - obs.topWickExtend);
+        ctx.fillStyle = topColor;
+        ctx.shadowColor = topGlow;
+        ctx.shadowBlur = 12;
+        ctx.fillRect(screenX, 0, w, topBodyHeight);
+        ctx.shadowBlur = 0;
+
+        // 阻力位发光标签与斑马纹
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(screenX, 0, w, topBodyHeight);
+
+        // 标尺文字
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.font = 'bold 10px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('RESIST', screenX + w / 2, topBodyHeight - 8);
+
+        // --- 下半部支撑K线柱 (从 gapBottom 延伸到底部) ---
+        const bottomColor = obs.bottomIsBullish ? colors.up : colors.down;
+        const bottomGlow = obs.bottomIsBullish ? colors.upGlow : colors.downGlow;
+
+        // 支撑位上影线（往上探入通道下方）
+        ctx.strokeStyle = bottomColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(screenX + w / 2, gapBottom);
+        ctx.lineTo(screenX + w / 2, height);
+        ctx.stroke();
+
+        // 下部实体蜡烛
+        const bottomBodyTop = gapBottom + obs.bottomWickExtend;
+        const bottomBodyHeight = Math.max(20, height - bottomBodyTop);
+        ctx.fillStyle = bottomColor;
+        ctx.shadowColor = bottomGlow;
+        ctx.shadowBlur = 12;
+        ctx.fillRect(screenX, bottomBodyTop, w, bottomBodyHeight);
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(screenX, bottomBodyTop, w, bottomBodyHeight);
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.fillText('SUPPORT', screenX + w / 2, bottomBodyTop + 18);
+      }
+
+      ctx.restore();
+    }
+
+    // 绘制小鸟（行情价格光标飞鸟）
+    function drawBird() {
+      ctx.save();
+      ctx.translate(bird.x, bird.y);
+
+      // 计算倾斜角度
+      if (state === 'PLAYING') {
+        bird.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 5, bird.velocity * 0.08));
+      } else {
+        bird.rotation = 0;
+      }
+      ctx.rotate(bird.rotation);
+
+      bird.wingCycle += (state === 'PLAYING' ? 0.22 : 0.08);
+
+      // --- 100% 原版真实像素 Flappy Bird (精准 34x24 像素网格，带 3 帧拍翅循环) ---
+      // 扑翅循环帧序列：0 (下) -> 1 (中) -> 2 (上) -> 1 (中)
+      const frameSequence = [0, 1, 2, 1];
+      const seqIdx = Math.floor(bird.wingCycle * 2.2) % 4;
+      const frameCanvas = originalBirdFrames[frameSequence[seqIdx]];
+
+      ctx.save();
+      ctx.imageSmoothingEnabled = false; // 保持最纯正的像素锐利边缘
+      const bw = 38;
+      const bh = 27;
+      ctx.drawImage(frameCanvas, -bw / 2, -bh / 2, bw, bh);
+      ctx.restore();
+
+      ctx.restore();
+
+      // 绘制小鸟头顶的价格标签气泡
+      ctx.save();
+      const colors = getColors();
+      const currentPriceStr = `$${currentPrice.toFixed(1)}`;
+      ctx.font = 'bold 11px "JetBrains Mono", monospace';
+      const textWidth = ctx.measureText(currentPriceStr).width;
+      const bubbleW = textWidth + 14;
+      const bubbleH = 20;
+      const bubbleX = bird.x - bubbleW / 2;
+      const bubbleY = bird.y - bird.radius - 22;
+
+      // 气泡底框
+      ctx.fillStyle = 'rgba(19, 23, 34, 0.9)';
+      ctx.strokeStyle = bird.velocity < 0 ? colors.up : colors.down;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.roundRect(bubbleX, bubbleY, bubbleW, bubbleH, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      // 价格文字
+      ctx.fillStyle = bird.velocity < 0 ? colors.up : colors.down;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(currentPriceStr, bird.x, bubbleY + bubbleH / 2);
+
+      ctx.restore();
+    }
+
+    // 绘制粒子效果
+    function drawParticles() {
+      ctx.save();
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // 绘制准备开始 (Ready HUD) 与实时计分牌
+    function drawHUD() {
+      ctx.save();
+
+      if (state === 'READY') {
+        ctx.textAlign = 'center';
+        // 浮动标题
+        const floatY = Math.sin(Date.now() * 0.005) * 6;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 32px "JetBrains Mono", -apple-system, sans-serif';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = 10;
+        ctx.fillText('FLAPPY K-LINE', width / 2, height * 0.32 + floatY);
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#f0b90b';
+        ctx.font = '600 15px -apple-system, sans-serif';
+        ctx.fillText('📈 小鸟经过之处，皆成真实 K 线 📉', width / 2, height * 0.38 + floatY);
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.font = '13px -apple-system, sans-serif';
+        ctx.fillText('点击屏幕 / 按 [空格] 开启做多旅途', width / 2, height * 0.65);
+      } else if (state === 'PLAYING') {
+        // 游戏进行中计分牌 (突破K线条数)
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 48px "JetBrains Mono", sans-serif';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowBlur = 12;
+        ctx.fillText(score, width / 2, 85);
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.font = '11px "JetBrains Mono", sans-serif';
+        ctx.fillText('CANDLES CROSSED', width / 2, 105);
+      }
+
+      ctx.restore();
+    }
+
+    // --- 碰撞检测 ---
+    function checkCollision() {
+      // 触碰顶部或底部边界强平
+      if (bird.y - bird.radius <= 0 || bird.y + bird.radius >= height) {
+        triggerGameOver();
+        return;
+      }
+
+      // 检测与障碍物K线的碰撞
+      for (let i = 0; i < obstacles.length; i++) {
+        const obs = obstacles[i];
+        const screenX = obs.worldX - worldDistance;
+        const w = obs.width;
+
+        // 如果小鸟的水平范围在障碍物柱体内
+        if (bird.x + bird.radius > screenX && bird.x - bird.radius < screenX + w) {
+          // 上部碰撞区 (0 到 gapY)
+          // 下部碰撞区 (gapY + gapHeight 到 height)
+          if (bird.y - bird.radius < obs.gapY || bird.y + bird.radius > obs.gapY + obs.gapHeight) {
+            triggerGameOver();
+            return;
+          }
+        }
+      }
+    }
+
+    // --- 游戏主循环更新 ---
+    function update() {
+      if (state === 'READY') {
+        // 轻微悬浮
+        bird.y = height * 0.5 + Math.sin(Date.now() * 0.006) * 10;
+        updateLiveCandle(bird.y);
+      } else if (state === 'PLAYING') {
+        // 物理掉落 (限制最大下落速度，避免暴跌直线下坠)
+        bird.velocity += bird.gravity;
+        if (bird.velocity > bird.maxDropSpeed) {
+          bird.velocity = bird.maxDropSpeed;
+        }
+        bird.y += bird.velocity;
+
+        // 世界前进
+        worldDistance += WORLD_SPEED;
+
+        // 更新小鸟身后的K线走势
+        updateLiveCandle(bird.y);
+
+        // 障碍物更新与计分
+        for (let i = 0; i < obstacles.length; i++) {
+          const obs = obstacles[i];
+          const screenX = obs.worldX - worldDistance;
+
+          // 穿越成功计分
+          if (!obs.passed && screenX + obs.width < bird.x) {
+            obs.passed = true;
+            score++;
+            sound.playScore();
+          }
+        }
+
+        // 移除已经远离屏幕左侧的障碍，并在右侧补充生成
+        if (obstacles.length > 0 && obstacles[0].worldX - worldDistance < -150) {
+          obstacles.shift();
+          const lastObs = obstacles[obstacles.length - 1];
+          spawnObstacle(lastObs.worldX - worldDistance + OBSTACLE_GAP_X);
+        }
+
+        // 碰撞判定
+        checkCollision();
+      }
+
+      // 同步顶栏实时价格
+      const colors = getColors();
+      headerPriceEl.textContent = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      headerPriceEl.style.color = currentPrice >= BASE_PRICE ? colors.up : colors.down;
+    }
+
+    function render() {
+      drawBackgroundGrid();
+      drawTrailCandles();
+      drawObstacles();
+      drawBird();
+      drawParticles();
+      drawHUD();
+    }
+
+    function gameLoop() {
+      update();
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // --- 事件监听 ---
+    function handleAction(e) {
+      if (state === 'GAMEOVER') return;
+      flap();
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        e.preventDefault();
+        handleAction(e);
+      }
+    });
+
+    canvas.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      handleAction(e);
+    });
+
+    btnRestart.addEventListener('click', (e) => {
+      e.stopPropagation();
+      initGame(); // 重置并进入 READY 悬浮准备状态，等待玩家手动按键/点击才起飞
+    });
+
+    // 启动游戏
+    initGame();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

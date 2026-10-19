@@ -32,10 +32,19 @@ export const knotProject: Project = {
   cover: 'orbit',
 };
 
+export const flappyKlineProject: Project = {
+  id: 'flappy-kline',
+  title: 'Flappy K-Line (K线跳跳乐)',
+  description: '经典 Flappy Bird 玩法，穿越阻力支撑巨型K线，小鸟经过的地方即时生成真实阴阳烛台与均线走势！',
+  href: '/fly/',
+  cover: 'gradient',
+  featured: true,
+};
+
 // 在这里添加自己的作品或外部项目。
 // 顺序决定展示顺序；featured: false 可从首页隐藏，作品页仍会显示。
 // 站内地址以 / 开头；外部链接使用完整的 https:// 地址，自动在新标签页打开。
-export const projects: Project[] = [calendarProject, landscapeProject, knotProject];
+export const projects: Project[] = [calendarProject, flappyKlineProject, landscapeProject, knotProject];
 
 export const featuredProjects = projects.filter((project) => project.featured !== false).slice(0, 2);
 
