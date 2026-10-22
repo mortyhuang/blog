@@ -24,7 +24,7 @@ const { name, label, autoLabel, autoIcon = 'clock', options } = Astro.props;
 const menuId = `${name}-menu`;
 ---
 <div class="picker" data-picker={name}>
-  <button class="icon-button picker-toggle" type="button" data-picker-toggle aria-haspopup="menu" aria-expanded="false" aria-controls={menuId} aria-label={label} title={label}>
+  <button class="icon-button picker-toggle" type="button" data-picker-toggle aria-haspopup="menu" aria-expanded="false" aria-controls={menuId} aria-label={label}>
     <slot />
   </button>
   <div class="picker-menu" data-picker-menu hidden>

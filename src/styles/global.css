@@ -149,10 +149,11 @@ h1 { letter-spacing: -.045em; }
 
 /* Header */
 .site-header { max-width: var(--reading-width); padding: 28px 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-.header-brand { display: flex; align-items: center; gap: 20px; }
-.brand { display: inline-flex; align-items: center; gap: 9px; color: var(--heading); font-size: 27px; letter-spacing: -1px; font-weight: 740; line-height: 1; }
-.brand-symbol { color: var(--accent); transition: transform .5s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.brand:hover .brand-symbol { transform: rotate(45deg); }
+.header-brand { display: flex; align-items: center; gap: 20px; min-width: 0; }
+.brand { display: inline-flex; align-items: center; gap: 9px; color: var(--heading); font-size: 27px; letter-spacing: -1px; font-weight: 740; line-height: 1; white-space: nowrap; }
+/* 不给标志加位移 / 旋转动画：页头一直在视线里，动一下反而像在抖。 */
+.brand-symbol { color: var(--accent); flex: none; }
+.brand:hover .brand-symbol { color: var(--accent-strong); }
 .brand-dot { color: var(--accent); }
 .brand-caption { display: none; }
 .header-right { display: flex; align-items: center; gap: 24px; }
@@ -161,7 +162,7 @@ h1 { letter-spacing: -.045em; }
 .main-nav a[aria-current='page'] { color: var(--accent-strong); font-weight: 600; }
 .main-nav a[aria-current='page']::after { content: ''; width: 4px; height: 4px; border-radius: 50%; position: absolute; bottom: -1px; left: calc(50% - 2px); background: var(--accent); }
 .main-nav a:hover { color: var(--accent); }
-.header-actions { display: flex; align-items: center; gap: 8px; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 .search-trigger { display: inline-flex; gap: 7px; align-items: center; padding: 5px 12px; border-radius: 999px; background: var(--surface-soft); color: var(--muted); font-size: 11px; transition: background .18s, color .18s; }
 .search-trigger:hover { background: var(--surface-hover); color: var(--accent); }
 kbd { font: 9px var(--mono); padding: 1px 5px; border: 0; border-radius: 3px; background: rgba(0, 0, 0, 0.05); color: var(--text); line-height: 1.4; }
@@ -172,12 +173,13 @@ kbd { font: 9px var(--mono); padding: 1px 5px; border: 0; border-radius: 3px; ba
 
 /* 页头的两个选择器（明暗主题、季节主题）共用下面这套结构。
    按钮里的图标一次渲染好几个，由 CSS 根据当前状态决定显示哪个，换状态不需要 JS 去换图标；
-   data-theme / data-theme-mode / data-season 都由 <head> 里的内联脚本在首次绘制前定好。 */
+   data-theme / data-season 都由 <head> 里的内联脚本在首次绘制前定好。
+   两个按钮显示的都是「当前生效」的那一个——跟随系统 / 跟随节气时也一样，
+   自动还是手动由菜单里的勾表示。 */
 .picker { position: relative; display: inline-flex; }
 .theme-icon, .season-icon { display: none; }
-[data-theme-mode='auto'] [data-theme-icon='auto'],
-[data-theme-mode='manual'][data-theme='light'] [data-theme-icon='light'],
-[data-theme-mode='manual'][data-theme='dark'] [data-theme-icon='dark'],
+[data-theme='light'] [data-theme-icon='light'],
+[data-theme='dark'] [data-theme-icon='dark'],
 [data-season='spring'] [data-season-icon='spring'],
 [data-season='summer'] [data-season-icon='summer'],
 [data-season='autumn'] [data-season-icon='autumn'],
@@ -567,7 +569,7 @@ kbd { font: 9px var(--mono); padding: 1px 5px; border: 0; border-radius: 3px; ba
 }
 @media (max-width: 540px) {
   .container { width: calc(100% - 36px); }
-  .site-header { padding: 18px 0 10px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; row-gap: 12px; }
+  .site-header { padding: 18px 0 10px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; row-gap: 12px; column-gap: 12px; }
   .header-brand { order: 1; }
   .header-right { order: 2; display: contents; }
   .header-actions { order: 2; display: flex; align-items: center; gap: 6px; }
@@ -677,13 +679,20 @@ kbd { font: 9px var(--mono); padding: 1px 5px; border: 0; border-radius: 3px; ba
   .not-found p { font-size: 11px; }
 }
 @media (max-width: 360px) {
-  .hero h1 { font-size: 43px; }
+  /* 窄屏上标题跟着宽度缩，避免「。」被挤到第三行。 */
+  .hero h1 { font-size: clamp(34px, 12vw, 43px); }
   .hero-eyebrow { font-size: 7px; }
   .hero-status { display: none; }
   .filter-buttons { gap: 2px; }
   .filter-button { padding-inline: 8px; }
   .archive-search { gap: 4px; font-size: 8px; }
   .card-body h3 { font-size: 16px; }
+}
+@media (max-width: 300px) {
+  /* 极窄屏（折叠屏外屏）上让标志和三个按钮仍能留在同一行。 */
+  .brand { font-size: 22px; gap: 7px; }
+  .brand-symbol { width: 25px; height: 25px; }
+  .header-actions { gap: 4px; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

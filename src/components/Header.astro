@@ -12,7 +12,8 @@ const seasons = SEASONS;
 const seasonIcon = { spring: 'sprout', summer: 'sun', autumn: 'leaf', winter: 'snowflake' } as const;
 // 明暗那三个图标共用一个圆，取的是太阳和月相的意思：
 // 实心 = 浅色（太阳）、半实心 = 深色（月相有缺）、空心 = 跟随系统。
-// 不直接画太阳 / 月亮：太阳是夏季的图标，两个按钮挨着放会分不清。
+// 按钮显示的是当前生效的那一个（跟随系统时也是，和季节按钮一个逻辑），
+// 空心圆只出现在菜单里。不直接画太阳 / 月亮：太阳是夏季的图标，两个按钮挨着放会分不清。
 const themeIcon = { auto: 'ring', light: 'disc', dark: 'contrast' } as const;
 ---
 <header class="site-header container">
