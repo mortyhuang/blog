@@ -68,6 +68,30 @@ test('明暗主题可以选回跟随系统，之后系统变化会跟着走', as
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 
+test('明暗按钮显示当前生效的那个图标，跟随系统时也一样', async ({ page }) => {
+  // 和季节按钮一个逻辑：跟随节气时按钮显示的是当前那一季，
+  // 那跟随系统时就应该显示当前实际的浅色 / 深色，而不是一个「自动」专用的图标。
+  for (const scheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', scheme);
+    await expect(page.locator('html')).toHaveAttribute('data-theme-mode', 'auto');
+    await expect(page.locator(`[data-theme-icon='${scheme}']`)).toBeVisible();
+    await expect(page.locator(`[data-theme-icon='${scheme === 'light' ? 'dark' : 'light'}']`)).toBeHidden();
+    await expect(page.locator("[data-theme-icon='auto']")).toBeHidden();
+  }
+
+  // 手动锁定之后同理：显示的是生效的那个，而不是系统那个。
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('/');
+  await page.getByRole('button', { name: /^明暗主题/ }).click();
+  await page.getByRole('menuitemradio', { name: '深色' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator("[data-theme-icon='dark']")).toBeVisible();
+  await expect(page.locator("[data-theme-icon='light']")).toBeHidden();
+  await expect(page.locator("[data-theme-icon='auto']")).toBeHidden();
+});
+
 test('文章不再区分开发与设计分类，卡片与列表不显示分类标签', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('[data-category-filter]')).toHaveCount(0);
@@ -495,7 +519,10 @@ test('发薪日可以自己设置并记住选择', async ({ page }) => {
 
   await page.reload();
   await expect(page.locator('[data-wage-output] .hc-row')).toHaveCount(2);
-  await expect(page.locator('[data-wage-output] .hc-row-label')).toHaveText(['20号', '最后工作日']);
+  // 两行按「距下一次发薪的天数」排序，20 号可能在本月最后工作日之前或之后，
+  // 所以这里只验证两个设置都被记住，不锁死先后。
+  const labels = await page.locator('[data-wage-output] .hc-row-label').allTextContents();
+  expect(labels.sort()).toEqual(['20号', '最后工作日'].sort());
 });
 
 test('发薪进度条按上一次发薪到这次发薪的周期计算', async ({ page }) => {

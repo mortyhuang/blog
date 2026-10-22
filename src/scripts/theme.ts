@@ -46,9 +46,10 @@ interface PickerConfig {
 }
 
 /**
- * 「按钮 + 菜单」选择器的交互：展开收起、键盘导航、点选，以及 aria 状态和按钮提示。
+ * 「按钮 + 菜单」选择器的交互：展开收起、键盘导航、点选，以及 aria 状态。
  * 明暗主题与季节主题共用这套行为，各自只提供状态与文案。
  * 按钮里的图标由 CSS 按 data-* 状态决定显示哪个，所以这里不碰图标。
+ * 按钮只保留 aria-label，不加 title：悬停时弹出的浏览器提示会挡住页头。
  */
 function createPicker(config: PickerConfig) {
   const { name, label, autoLabel, choices, current, effective, choose } = config;
@@ -69,7 +70,6 @@ function createPicker(config: PickerConfig) {
       ? `${autoLabel}（当前 ${labelOf(effective())}）`
       : `已选择${labelOf(value)}`;
     toggle.setAttribute('aria-label', `${label}：${description}`);
-    toggle.setAttribute('title', `${label}：${description}`);
   };
 
   const open = (target: 'checked' | 'first' | 'last' = 'checked') => {
