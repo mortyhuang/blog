@@ -1,0 +1,525 @@
+---
+import {
+  OVD_DEFAULTS,
+  OVD_HORIZON,
+  doubleAt,
+  findCrossover,
+  formatMoney,
+  lumpAt,
+} from '../lib/one-vs-double';
+
+const { amount, start, rate, month, interest } = OVD_DEFAULTS;
+const aNow = lumpAt(amount, rate, month, interest);
+const bNow = doubleAt(start, month);
+const cross = findCrossover(amount, start, rate, interest);
+const diff = bNow - aNow;
+const leader = Math.abs(diff) < 1 ? '打平' : diff > 0 ? '翻倍领先' : '一次性领先';
+const status = `第 ${month} 个月 · ${leader} ${formatMoney(Math.abs(diff))}${cross >= 0 ? ` · 交点第 ${cross} 个月` : ' · 48 个月内没有交叉'}`;
+const aria = `交互图：第 ${month} 个月，一次性方案 ${formatMoney(aNow)}，翻倍方案 ${formatMoney(bNow)}，${leader} ${formatMoney(Math.abs(diff))}。${cross >= 0 ? `两条曲线在第 ${cross} 个月交叉。` : '48 个月内没有交叉。'}`;
+---
+<section class="ovd" data-ovd>
+  <div class="ovd-cards">
+    <article class="ovd-card ovd-card-a">
+      <div class="ovd-card-top">
+        <span class="ovd-key"><i class="ovd-swatch"></i>一次性拿走</span>
+        <span class="ovd-tag" data-a-tag>本金 + 利息</span>
+      </div>
+      <strong class="ovd-value" data-a-now>{formatMoney(aNow)}</strong>
+      <div class="ovd-fields">
+        <label class="ovd-field">本金
+          <span class="ovd-number"><input data-a-input type="number" min="1" step="1000000" value={amount} inputmode="numeric" /><em>元</em></span>
+        </label>
+        <label class="ovd-field">年化
+          <span class="ovd-range"><input data-rate type="range" min="0" max="15" step="0.5" value={rate} /><output data-rate-out>{rate}%</output></span>
+        </label>
+      </div>
+    </article>
+
+    <article class="ovd-card ovd-card-b">
+      <div class="ovd-card-top">
+        <span class="ovd-key"><i class="ovd-swatch"></i>从 1 元开始，每月翻倍</span>
+        <span class="ovd-tag">×2 / 月</span>
+      </div>
+      <strong class="ovd-value" data-b-now>{formatMoney(bNow)}</strong>
+      <div class="ovd-fields">
+        <label class="ovd-field">起始
+          <span class="ovd-number"><input data-b-input type="number" min="1" step="1" value={start} inputmode="numeric" /><em>元</em></span>
+        </label>
+      </div>
+    </article>
+  </div>
+
+  <div class="ovd-chart-wrap">
+    <canvas data-chart role="img" aria-label={aria}></canvas>
+  </div>
+
+  <div class="ovd-status" data-status data-leader="b">
+    <span class="ovd-status-dot" aria-hidden="true"></span>
+    <span data-status-text>{status}</span>
+  </div>
+
+  <div class="ovd-bar">
+    <label class="ovd-month">第 <output data-month-out>{month}</output> 个月
+      <input data-month type="range" min="0" max={OVD_HORIZON} step="1" value={month} />
+    </label>
+    <div class="ovd-actions">
+      <button class="ovd-btn" type="button" data-play>播放</button>
+      <button class="ovd-btn" type="button" data-jump>跳到交点</button>
+      <div class="ovd-scale" role="group" aria-label="纵轴刻度">
+        <button class="ovd-btn is-on" type="button" data-scale="log" aria-pressed="true">对数</button>
+        <button class="ovd-btn" type="button" data-scale="linear" aria-pressed="false">线性</button>
+      </div>
+      <label class="ovd-check"><input data-interest type="checkbox" checked /> 算利息</label>
+    </div>
+  </div>
+
+  <p class="ovd-hint">拖动时间轴，或直接点图表上的任意位置。默认：1 亿按 5% 年化、按月复利；1 元每月翻倍。</p>
+  <noscript><p class="ovd-hint">开启 JavaScript 后可以拖动和改参数；上面的数字是默认值。</p></noscript>
+</section>
+
+<style>
+  .ovd { margin: 30px 0; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .ovd *, .ovd *::before, .ovd *::after { box-sizing: border-box; }
+  .ovd-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ovd-card { min-width: 0; padding: 14px 16px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); }
+  .ovd-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .ovd-key { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font: 10px var(--mono); letter-spacing: .4px; }
+  .ovd-swatch { display: inline-block; width: 20px; height: 0; border-top: 2px solid var(--muted); }
+  .ovd-card-b .ovd-swatch { border-color: var(--accent-strong); }
+  .ovd-tag { color: var(--subtle); font: 8px var(--mono); letter-spacing: .8px; white-space: nowrap; }
+  .ovd-value { display: block; margin: 14px 0 14px; color: var(--heading); font: 600 clamp(23px, 3.2vw, 31px)/1.1 var(--mono); letter-spacing: -1.2px; }
+  .ovd-card-b .ovd-value { color: var(--accent-strong); }
+  .ovd-fields { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+  .ovd-field { display: flex; flex: 1 1 120px; min-width: 0; align-items: center; gap: 7px; color: var(--muted); font: 9px var(--mono); letter-spacing: .4px; }
+  .ovd-number { display: inline-flex; flex: 1; min-width: 0; align-items: center; gap: 4px; padding: 4px 7px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); }
+  .ovd-number input { width: 100%; min-width: 0; padding: 0; border: 0; outline: 0; color: var(--text); background: transparent; font: 11px var(--mono); appearance: textfield; -moz-appearance: textfield; }
+  .ovd-number input::-webkit-outer-spin-button,
+  .ovd-number input::-webkit-inner-spin-button { margin: 0; -webkit-appearance: none; }
+  .ovd-number em { flex: none; color: var(--subtle); font: 8px var(--mono); font-style: normal; }
+  .ovd-range { display: inline-flex; flex: 1; min-width: 70px; align-items: center; gap: 6px; }
+  .ovd-range input { width: 100%; accent-color: var(--accent-strong); }
+  .ovd-range output { flex: none; width: 34px; color: var(--text); font: 10px var(--mono); text-align: right; }
+  .ovd-range input:disabled { opacity: .35; }
+  .ovd-chart-wrap { margin-top: 10px; }
+  .ovd canvas { display: block; width: 100%; height: 330px; touch-action: pan-y; cursor: crosshair; }
+  .ovd-status { display: flex; align-items: center; gap: 7px; margin-top: 2px; color: var(--muted); font: 9.5px var(--mono); letter-spacing: .2px; }
+  .ovd-status-dot { width: 5px; height: 5px; flex: none; border-radius: 50%; background: var(--accent-strong); }
+  .ovd-status[data-leader='a'] .ovd-status-dot { background: var(--muted); }
+  .ovd-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .ovd-month { display: flex; flex: 1 1 220px; min-width: 0; align-items: center; gap: 8px; color: var(--muted); font: 9.5px var(--mono); white-space: nowrap; }
+  .ovd-month input { flex: 1; min-width: 80px; accent-color: var(--accent-strong); }
+  .ovd-month output { color: var(--text); font-weight: 600; }
+  .ovd-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .ovd-btn { padding: 5px 9px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface); color: var(--muted); font: 9px var(--mono); cursor: pointer; transition: color .15s, background .15s, border-color .15s; }
+  .ovd-btn:hover { color: var(--accent-strong); border-color: var(--accent); }
+  .ovd-btn:focus-visible, .ovd input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ovd-btn[aria-pressed='true'], .ovd-btn.is-on { color: var(--accent-strong); border-color: var(--accent); background: var(--accent-soft); }
+  .ovd-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .ovd-scale { display: inline-flex; gap: 0; }
+  .ovd-scale .ovd-btn { border-radius: 0; }
+  .ovd-scale .ovd-btn:first-child { border-radius: 5px 0 0 5px; }
+  .ovd-scale .ovd-btn:last-child { border-radius: 0 5px 5px 0; border-left: 0; }
+  .ovd-check { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font: 9px var(--mono); white-space: nowrap; cursor: pointer; }
+  .ovd-check input { accent-color: var(--accent-strong); }
+  .ovd-hint { margin: 10px 0 0; color: var(--subtle); font-size: 9.5px; line-height: 1.7; }
+  @media (max-width: 680px) {
+    .ovd { padding: 13px; }
+    .ovd-cards { grid-template-columns: 1fr; gap: 9px; }
+    .ovd-card { padding: 12px 13px 14px; }
+    .ovd-value { margin: 10px 0 11px; }
+    .ovd canvas { height: 280px; }
+    .ovd-bar { gap: 9px; }
+    .ovd-month { flex-basis: 100%; }
+  }
+</style>
+
+<script>
+  import {
+    OVD_DEFAULTS,
+    OVD_HORIZON,
+    doubleAt,
+    findCrossover,
+    formatCompact,
+    formatMoney,
+    lumpAt,
+  } from '../lib/one-vs-double';
+
+  const root = document.querySelector<HTMLElement>('[data-ovd]');
+  if (root) {
+    const canvas = root.querySelector<HTMLCanvasElement>('[data-chart]')!;
+    const ctx = canvas.getContext('2d')!;
+    const aInput = root.querySelector<HTMLInputElement>('[data-a-input]')!;
+    const bInput = root.querySelector<HTMLInputElement>('[data-b-input]')!;
+    const rateInput = root.querySelector<HTMLInputElement>('[data-rate]')!;
+    const rateOut = root.querySelector<HTMLOutputElement>('[data-rate-out]')!;
+    const monthInput = root.querySelector<HTMLInputElement>('[data-month]')!;
+    const monthOut = root.querySelector<HTMLOutputElement>('[data-month-out]')!;
+    const interestInput = root.querySelector<HTMLInputElement>('[data-interest]')!;
+    const aNow = root.querySelector<HTMLElement>('[data-a-now]')!;
+    const aTag = root.querySelector<HTMLElement>('[data-a-tag]')!;
+    const bNow = root.querySelector<HTMLElement>('[data-b-now]')!;
+    const status = root.querySelector<HTMLElement>('[data-status]')!;
+    const statusText = root.querySelector<HTMLElement>('[data-status-text]')!;
+    const playButton = root.querySelector<HTMLButtonElement>('[data-play]')!;
+    const jumpButton = root.querySelector<HTMLButtonElement>('[data-jump]')!;
+    const scaleButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-scale]'));
+
+    type Scale = 'log' | 'linear';
+    const state: {
+      amount: number;
+      start: number;
+      rate: number;
+      month: number;
+      interest: boolean;
+      scale: Scale;
+    } = {
+      amount: OVD_DEFAULTS.amount,
+      start: OVD_DEFAULTS.start,
+      rate: OVD_DEFAULTS.rate,
+      month: OVD_DEFAULTS.month,
+      interest: OVD_DEFAULTS.interest,
+      scale: 'log',
+    };
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let playing = false;
+    let raf = 0;
+    let lastFrame = 0;
+    let scrubbing = false;
+
+    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+    const numberValue = (input: HTMLInputElement, fallback: number, min: number, max: number) => {
+      const value = input.valueAsNumber;
+      return Number.isFinite(value) ? clamp(value, min, max) : fallback;
+    };
+    const monthLabel = () => String(Math.round(state.month));
+
+    const getPad = (width: number) => ({ top: 24, right: 16, bottom: 34, left: width < 420 ? 58 : 70 });
+
+    const readColors = () => {
+      const style = getComputedStyle(document.documentElement);
+      return {
+        line: style.getPropertyValue('--line').trim() || '#d8ddd5',
+        muted: style.getPropertyValue('--muted').trim() || '#777',
+        subtle: style.getPropertyValue('--subtle').trim() || '#888',
+        accent: style.getPropertyValue('--accent-strong').trim() || '#7a4a1f',
+        cursor: style.getPropertyValue('--accent').trim() || '#a66a2a',
+        surface: style.getPropertyValue('--surface').trim() || '#fff',
+      };
+    };
+
+    const dot = (x: number, y: number, color: string, border: string) => {
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    };
+
+    const draw = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width < 20 || rect.height < 20) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = rect.width;
+      const h = rect.height;
+      if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      const colors = readColors();
+      const pad = getPad(w);
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+      const aEnd = lumpAt(state.amount, state.rate, OVD_HORIZON, state.interest);
+      const bEnd = doubleAt(state.start, OVD_HORIZON);
+      const cross = findCrossover(state.amount, state.start, state.rate, state.interest);
+      const isLog = state.scale === 'log';
+
+      let y: (value: number) => number;
+      let linearMax = 0;
+      const ticks: Array<{ value: number; label: string }> = [];
+
+      if (isLog) {
+        const minPositive = Math.max(1, Math.min(state.amount, state.start));
+        const logMin = Math.floor(Math.log10(minPositive));
+        const logMax = Math.max(logMin + 2, Math.ceil(Math.log10(Math.max(aEnd, bEnd, 10))));
+        y = (value) => pad.top + ((logMax - Math.log10(Math.max(value, 10 ** logMin))) / (logMax - logMin)) * plotH;
+        for (let tick = logMin; tick <= logMax; tick += 2) {
+          ticks.push({ value: 10 ** tick, label: formatCompact(10 ** tick) });
+        }
+      } else {
+        const crossValue = cross >= 0 ? doubleAt(state.start, cross) : 0;
+        linearMax = Math.max(aEnd, state.start, crossValue, 1) * 1.35;
+        y = (value) => pad.top + ((linearMax - Math.max(0, value)) / linearMax) * plotH;
+        for (let i = 0; i <= 4; i += 1) {
+          const value = (linearMax * i) / 4;
+          ticks.push({ value, label: formatCompact(value) });
+        }
+      }
+
+      const x = (month: number) => pad.left + (month / OVD_HORIZON) * plotW;
+      const font = `10px 'JetBrains Mono Variable', ui-monospace, monospace`;
+
+      ctx.font = font;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'right';
+      for (const tick of ticks) {
+        const yy = y(tick.value);
+        if (yy < pad.top - 0.5 || yy > pad.top + plotH + 0.5) continue;
+        ctx.strokeStyle = colors.line;
+        ctx.globalAlpha = 0.65;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, yy);
+        ctx.lineTo(w - pad.right, yy);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = colors.muted;
+        ctx.fillText(tick.label, pad.left - 8, yy);
+      }
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      for (let month = 0; month <= OVD_HORIZON; month += 6) {
+        const xx = x(month);
+        ctx.strokeStyle = colors.line;
+        ctx.globalAlpha = 0.65;
+        ctx.beginPath();
+        ctx.moveTo(xx, pad.top);
+        ctx.lineTo(xx, pad.top + plotH);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = colors.muted;
+        ctx.fillText(String(month), xx, pad.top + plotH + 10);
+      }
+
+      ctx.strokeStyle = colors.line;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, pad.top);
+      ctx.lineTo(pad.left, pad.top + plotH);
+      ctx.lineTo(w - pad.right, pad.top + plotH);
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = colors.subtle;
+      ctx.fillText(isLog ? '对数刻度' : '线性刻度', pad.left, 3);
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('月', w - pad.right, h - 2);
+
+      const strokePath = (valueAt: (month: number) => number) => {
+        ctx.beginPath();
+        for (let i = 0; i <= OVD_HORIZON * 2; i += 1) {
+          const month = i / 2;
+          const px = x(month);
+          const py = y(valueAt(month));
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      };
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(pad.left, pad.top, plotW, plotH);
+      ctx.clip();
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = colors.muted;
+      ctx.setLineDash([5, 4]);
+      strokePath((month) => lumpAt(state.amount, state.rate, month, state.interest));
+      ctx.setLineDash([]);
+      ctx.strokeStyle = colors.accent;
+      strokePath((month) => doubleAt(state.start, month));
+      ctx.restore();
+
+      if (cross >= 0) {
+        const cx = x(cross);
+        const cy = y(doubleAt(state.start, cross));
+        ctx.save();
+        ctx.strokeStyle = colors.cursor;
+        ctx.globalAlpha = 0.8;
+        ctx.setLineDash([3, 4]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx, pad.top);
+        ctx.lineTo(cx, pad.top + plotH);
+        ctx.stroke();
+        ctx.restore();
+        if (cy >= pad.top && cy <= pad.top + plotH) {
+          dot(cx, cy, colors.accent, colors.surface);
+          ctx.font = font;
+          ctx.fillStyle = colors.accent;
+          ctx.textBaseline = 'top';
+          ctx.textAlign = cx > w - pad.right - 92 ? 'right' : 'left';
+          ctx.fillText(`第 ${cross} 个月交叉`, cx + (ctx.textAlign === 'right' ? -7 : 7), pad.top - 18);
+        }
+      }
+
+      const currentX = x(state.month);
+      ctx.save();
+      ctx.strokeStyle = colors.cursor;
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(currentX, pad.top);
+      ctx.lineTo(currentX, pad.top + plotH);
+      ctx.stroke();
+      ctx.restore();
+
+      const aValue = lumpAt(state.amount, state.rate, state.month, state.interest);
+      const bValue = doubleAt(state.start, state.month);
+      if (y(aValue) >= pad.top && y(aValue) <= pad.top + plotH) dot(currentX, y(aValue), colors.muted, colors.surface);
+      if (y(bValue) >= pad.top && y(bValue) <= pad.top + plotH) dot(currentX, y(bValue), colors.accent, colors.surface);
+
+      if (!isLog && bValue > linearMax) {
+        ctx.font = font;
+        ctx.fillStyle = colors.accent;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText('翻倍方案已冲出图表 ↑', w - pad.right, pad.top + 6);
+      }
+    };
+
+    const update = () => {
+      const a = lumpAt(state.amount, state.rate, state.month, state.interest);
+      const b = doubleAt(state.start, state.month);
+      const diff = b - a;
+      const cross = findCrossover(state.amount, state.start, state.rate, state.interest);
+      const leader = Math.abs(diff) < 1 ? '打平' : diff > 0 ? '翻倍领先' : '一次性领先';
+      const crossText = cross >= 0 ? `交点第 ${cross} 个月` : '48 个月内没有交叉';
+
+      aNow.textContent = formatMoney(a);
+      bNow.textContent = formatMoney(b);
+      monthOut.textContent = monthLabel();
+      rateOut.textContent = `${state.rate}%`;
+      rateInput.disabled = !state.interest;
+      aTag.textContent = state.interest ? '本金 + 利息' : '不计利息';
+      status.dataset.leader = diff >= 0 ? 'b' : 'a';
+      statusText.textContent = `第 ${monthLabel()} 个月 · ${leader} ${formatMoney(Math.abs(diff))} · ${crossText}`;
+      jumpButton.disabled = cross < 0;
+      jumpButton.textContent = cross < 0 ? '范围内无交点' : '跳到交点';
+      if (document.activeElement !== monthInput) monthInput.value = monthLabel();
+      canvas.setAttribute(
+        'aria-label',
+        `交互图：第 ${monthLabel()} 个月，一次性方案 ${formatMoney(a)}，翻倍方案 ${formatMoney(b)}，${leader} ${formatMoney(Math.abs(diff))}。${cross >= 0 ? `两条曲线在第 ${cross} 个月交叉。` : '48 个月内没有交叉。'}`,
+      );
+      draw();
+    };
+
+    const stopPlayback = () => {
+      if (!playing) return;
+      playing = false;
+      cancelAnimationFrame(raf);
+      playButton.textContent = '播放';
+    };
+
+    const startPlayback = () => {
+      if (reducedMotion.matches) {
+        state.month = state.month >= OVD_HORIZON ? 0 : OVD_HORIZON;
+        update();
+        return;
+      }
+      if (state.month >= OVD_HORIZON) state.month = 0;
+      playing = true;
+      playButton.textContent = '暂停';
+      lastFrame = performance.now();
+      const step = (now: number) => {
+        if (!playing) return;
+        const delta = Math.min(80, now - lastFrame);
+        lastFrame = now;
+        state.month = Math.min(OVD_HORIZON, state.month + (delta / 1000) * 12);
+        update();
+        if (state.month >= OVD_HORIZON) {
+          state.month = OVD_HORIZON;
+          update();
+          stopPlayback();
+          return;
+        }
+        raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    };
+
+    const setMonthFromPointer = (event: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const pad = getPad(rect.width);
+      const plotW = rect.width - pad.left - pad.right;
+      const ratio = clamp((event.clientX - rect.left - pad.left) / plotW, 0, 1);
+      state.month = Math.round(ratio * OVD_HORIZON);
+      stopPlayback();
+      update();
+    };
+
+    aInput.addEventListener('input', () => {
+      state.amount = numberValue(aInput, state.amount, 1, 1e15);
+      update();
+    });
+    bInput.addEventListener('input', () => {
+      state.start = numberValue(bInput, state.start, 1, 1e12);
+      update();
+    });
+    // 输入框被清空或填了非法值时，失焦后回到实际生效的数字。
+    aInput.addEventListener('blur', () => { aInput.value = String(Math.round(state.amount)); });
+    bInput.addEventListener('blur', () => { bInput.value = String(Math.round(state.start)); });
+    rateInput.addEventListener('input', () => {
+      state.rate = numberValue(rateInput, state.rate, 0, 15);
+      update();
+    });
+    monthInput.addEventListener('input', () => {
+      stopPlayback();
+      state.month = numberValue(monthInput, state.month, 0, OVD_HORIZON);
+      update();
+    });
+    interestInput.addEventListener('change', () => {
+      state.interest = interestInput.checked;
+      update();
+    });
+    playButton.addEventListener('click', () => {
+      if (playing) stopPlayback();
+      else startPlayback();
+    });
+    jumpButton.addEventListener('click', () => {
+      const cross = findCrossover(state.amount, state.start, state.rate, state.interest);
+      if (cross < 0) return;
+      stopPlayback();
+      state.month = cross;
+      update();
+    });
+    for (const button of scaleButtons) {
+      button.addEventListener('click', () => {
+        const scale = button.dataset.scale;
+        if (scale !== 'log' && scale !== 'linear') return;
+        state.scale = scale;
+        for (const other of scaleButtons) other.setAttribute('aria-pressed', String(other === button));
+        update();
+      });
+    }
+
+    canvas.addEventListener('pointerdown', (event) => {
+      scrubbing = true;
+      canvas.setPointerCapture(event.pointerId);
+      setMonthFromPointer(event);
+    });
+    canvas.addEventListener('pointermove', (event) => {
+      if (scrubbing) setMonthFromPointer(event);
+    });
+    const endScrub = () => { scrubbing = false; };
+    canvas.addEventListener('pointerup', endScrub);
+    canvas.addEventListener('pointercancel', endScrub);
+
+    new ResizeObserver(() => draw()).observe(canvas.parentElement ?? canvas);
+    window.addEventListener('themechange', draw);
+    window.addEventListener('resize', draw);
+
+    update();
+  }
+</script>
