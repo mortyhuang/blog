@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const publicPages = ['/', '/posts/', '/posts/shader-landscape/', '/projects/', '/projects/noise-landscape/', '/projects/trefoil-knot/', '/projects/year-calendar/', '/about/'];
+const publicPages = ['/', '/posts/', '/posts/shader-landscape/', '/posts/one-yuan-doubling/', '/projects/', '/projects/noise-landscape/', '/projects/trefoil-knot/', '/projects/year-calendar/', '/about/'];
 
 test('首页显示文章、作品与真实导航', async ({ page }) => {
   const errors: string[] = [];
@@ -10,7 +10,7 @@ test('首页显示文章、作品与真实导航', async ({ page }) => {
   await expect(page).toHaveTitle(/mori/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('保持好奇');
   await expect(page.locator('.post-card')).toHaveCount(0);
-  await expect(page.locator('[data-post-row]:visible')).toHaveCount(6);
+  await expect(page.locator('[data-post-row]:visible')).toHaveCount(7);
   await expect(page.locator('[data-project-preview]')).toHaveCount(2);
   await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '关于' }).click();
   await expect(page).toHaveURL('/about/');
@@ -98,7 +98,7 @@ test('文章不再区分开发与设计分类，卡片与列表不显示分类�
   await expect(page.locator('.post-card .category-label')).toHaveCount(0);
   await expect(page.locator('.post-row .post-row-category')).toHaveCount(0);
   await expect(page.locator('.post-card')).toHaveCount(0);
-  await expect(page.locator('[data-post-row]')).toHaveCount(6);
+  await expect(page.locator('[data-post-row]')).toHaveCount(7);
 
   await page.goto('/posts/');
   await expect(page.locator('[data-category-filter]')).toHaveCount(0);
@@ -114,17 +114,17 @@ test('标签 URL、话题筛选、空状态及重置可用', async ({ page }) =>
   await expect(page.locator('[data-active-tag-name]')).toHaveText('CSS');
   await expect(page).toHaveURL(/tag=CSS/);
   await page.getByRole('button', { name: '清除话题筛选' }).click();
-  await expect(page.locator('[data-post-row]:visible')).toHaveCount(6);
+  await expect(page.locator('[data-post-row]:visible')).toHaveCount(7);
   await expect(page.locator('[data-active-tag]')).toBeHidden();
   await expect(page).toHaveURL('/posts/');
   await page.goto('/posts/?tag=NonExistentTag');
   await expect(page.locator('[data-filter-empty]')).toBeVisible();
   await page.getByRole('button', { name: '查看全部文章' }).click();
-  await expect(page.locator('[data-post-row]:visible')).toHaveCount(6);
+  await expect(page.locator('[data-post-row]:visible')).toHaveCount(7);
   await page.locator('[data-tag-filter="CSS"]').click();
   await expect(page.locator('[data-post-row]:visible')).toHaveCount(2);
   await page.goBack();
-  await expect(page.locator('[data-post-row]:visible')).toHaveCount(6);
+  await expect(page.locator('[data-post-row]:visible')).toHaveCount(7);
 });
 
 test('搜索支持快捷键、键盘选择及跳转', async ({ page }) => {
@@ -162,7 +162,7 @@ test('搜索加载失败时说明错误并允许重试', async ({ page }) => {
   await page.keyboard.press('Escape');
   await page.unroute('**/search-index.json');
   await page.getByRole('button', { name: '搜索文章', exact: true }).click();
-  await expect(page.locator('.search-result')).toHaveCount(6);
+  await expect(page.locator('.search-result')).toHaveCount(7);
 });
 
 test('MDX 渲染、地形滑块、代码与链接复制可用', async ({ page }) => {
@@ -185,6 +185,36 @@ test('MDX 渲染、地形滑块、代码与链接复制可用', async ({ page })
   await expect(page.locator('[data-copy-link]')).toContainText('已复制链接');
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/posts\/shader-landscape\//);
   await expect(page.locator('.related-section')).toHaveCount(0);
+});
+
+test('一亿与一块钱的交互面板可以改利率、跳交点和切换刻度', async ({ page }) => {
+  await page.goto('/posts/one-yuan-doubling/');
+  const panel = page.locator('[data-ovd]');
+  await expect(panel.locator('[data-a-now]')).toHaveText('1.12 亿');
+  await expect(panel.locator('[data-b-now]')).toHaveText('1.34 亿');
+  await expect(panel.locator('[data-status-text]')).toContainText('交点第 27 个月');
+
+  // 利率拉到 15%：1 亿在第 27 个月反超，交点挪到下个月。
+  await panel.locator('[data-rate]').evaluate((element: HTMLInputElement) => {
+    element.value = '15';
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect(panel.locator('[data-a-now]')).toHaveText('1.40 亿');
+  await expect(panel.locator('[data-status-text]')).toContainText('一次性领先');
+  await expect(panel.locator('[data-status-text]')).toContainText('交点第 28 个月');
+
+  await panel.locator('[data-jump]').click();
+  await expect(panel.locator('[data-month-out]')).toHaveText('28');
+  await expect(panel.locator('[data-b-now]')).toHaveText('2.68 亿');
+
+  // 关掉利息后，一次性方案回到本金。
+  await panel.locator('[data-interest]').uncheck();
+  await expect(panel.locator('[data-a-now]')).toHaveText('1.00 亿');
+  await expect(panel.locator('[data-status-text]')).toContainText('交点第 27 个月');
+
+  await panel.locator('[data-scale="linear"]').click();
+  await expect(panel.locator('[data-scale="linear"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(panel.locator('[data-scale="log"]')).toHaveAttribute('aria-pressed', 'false');
 });
 
 test('文章不显示副标题、感谢区和推荐区，底部标签保留并可筛选文章', async ({ page, request }) => {
@@ -343,13 +373,13 @@ test('页面不显示持续更新或不断更新等标语及突兀的英文小�
   await expect(page.locator('.page-intro, .archive-summary, .archive-search')).toHaveCount(0);
 });
 
-test('作品入口、项目卡片与三个独立展示页可以直接体验', async ({ page, request }) => {
+test('作品入口、项目卡片与独立展示页可以直接体验', async ({ page, request }) => {
   await page.goto('/');
   await expect(page.locator('[data-project-preview]')).toHaveCount(2);
   await expect(page.locator('.project-preview-meta, .project-preview-kind, .project-preview-arrow, .project-card-tags, .project-card-meta')).toHaveCount(0);
   await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '作品', exact: true }).click();
   await expect(page).toHaveURL('/projects/');
-  await expect(page.locator('[data-project-card]')).toHaveCount(3);
+  await expect(page.locator('[data-project-card]')).toHaveCount(4);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('作品');
   await expect(page.locator('.project-card-meta, .project-card-tags')).toHaveCount(0);
   for (const card of await page.locator('[data-project-card]').all()) {
@@ -609,7 +639,8 @@ test('作品画廊保持宽版，页头页脚和文章保留窄版布局', async
   // 作品变多时卡片会变窄，但画廊仍然铺满宽版容器。
   const gallery = await page.locator('.projects-grid').boundingBox();
   expect(gallery!.width).toBeCloseTo(main!.width, 0);
-  expect((await page.locator('[data-project-card]').first().boundingBox())!.width).toBeGreaterThan(main!.width / 4);
+  // 四列时每张卡略小于容器宽度的四分之一，用五分之一作为下限。
+  expect((await page.locator('[data-project-card]').first().boundingBox())!.width).toBeGreaterThan(main!.width / 5);
   expect((await page.locator('.projects-intro').boundingBox())!.height).toBeLessThan(210);
   for (const selector of ['.site-header', '.site-footer']) {
     const box = await page.locator(selector).boundingBox();
@@ -705,7 +736,7 @@ test('RSS、搜索、站点地图与 SEO 元数据完整且不泄露草稿', asy
   const index = await request.get('/search-index.json');
   expect(index.ok()).toBeTruthy();
   const entries = await index.json();
-  expect(entries).toHaveLength(6);
+  expect(entries).toHaveLength(7);
   expect(JSON.stringify(entries)).not.toContain('draft-growth');
   for (const entry of entries) expect((await request.get(entry.url)).ok()).toBeTruthy();
   const rss = await request.get('/rss.xml');
@@ -778,7 +809,7 @@ test('搜索弹窗在深浅主题均通过 WCAG AA 自动检查', async ({ page 
     await page.emulateMedia({ colorScheme });
     await page.goto('/');
     await page.getByRole('button', { name: '搜索文章', exact: true }).click();
-    await expect(page.locator('.search-result')).toHaveCount(6);
+    await expect(page.locator('.search-result')).toHaveCount(7);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     expect(results.violations).toEqual([]);
     await page.keyboard.press('Escape');
