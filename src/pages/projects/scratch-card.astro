@@ -1,0 +1,74 @@
+---
+import ScratchCard from '../../components/ScratchCard.astro';
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="中国龙、5动奇迹、擂台赛、翻6倍，四种经典刮刮乐玩法的免费模拟体验。非官方模拟，不可兑奖。" />
+    <meta name="theme-color" content="#101411" />
+    <title>好运刮刮乐 · 四种经典玩法</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <header class="arcade-header">
+      <a href="/projects/" class="arcade-back" aria-label="返回作品">← <span>返回作品</span></a>
+      <a class="arcade-brand" href="/projects/scratch-card/"><span aria-hidden="true">✷</span> 好运刮刮乐 <small>SCRATCH CLUB</small></a>
+      <button type="button" class="fullscreen-button" aria-label="进入全屏">全屏 ↗</button>
+    </header>
+    <main><ScratchCard /></main>
+    <script>
+      const button = document.querySelector<HTMLButtonElement>('.fullscreen-button')!;
+      if (!document.fullscreenEnabled) button.hidden = true;
+      button.addEventListener('click', async () => {
+        try {
+          if (document.fullscreenElement) await document.exitFullscreen();
+          else await document.documentElement.requestFullscreen();
+        } catch { /* Fullscreen is optional; the game remains playable. */ }
+      });
+      document.addEventListener('fullscreenchange', () => {
+        const active = Boolean(document.fullscreenElement);
+        button.textContent = active ? '退出全屏 ↙' : '全屏 ↗';
+        button.setAttribute('aria-label', active ? '退出全屏' : '进入全屏');
+      });
+    </script>
+  </body>
+</html>
+<style is:global>
+  :root {
+    color-scheme: dark;
+    --bg: #101411; --surface: #19201b; --line: #2c372e; --line-strong: #364238;
+    --text: #c9d2c8; --heading: #f1eee3; --muted: #9ba99b;
+    --accent: #d7bc7e; --accent-strong: #ead09a; --accent-soft: #343021;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --serif: 'Songti SC', 'Noto Serif CJK SC', serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; min-height: 100dvh; background: radial-gradient(ellipse at 50% 25%, #26332970, transparent 65%), var(--bg); color: var(--text); font: 14px/1.65 -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, p { margin: 0; }
+  button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  button:disabled { cursor: default; }
+  a { color: inherit; text-decoration: none; }
+  a:hover { color: var(--accent); }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .arcade-header { min-height: 84px; padding: 20px clamp(18px, 3vw, 48px); display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid #ffffff0b; }
+  .arcade-back, .fullscreen-button { font-size: 11px; color: var(--muted); padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; }
+  .arcade-brand { color: var(--heading); font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 9px; letter-spacing: 1px; }
+  .arcade-brand > span { color: var(--accent); font-size: 25px; }
+  .arcade-brand small { font: 9px var(--mono); color: var(--muted); margin-left: 8px; letter-spacing: 2px; }
+  main { min-height: calc(100dvh - 84px); display: flex; align-items: center; }
+  .button { min-height: 46px; padding: 11px 18px; border: 1px solid var(--line-strong); border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 16px; font-size: 13px; }
+  .button-primary { color: #292319; background: var(--accent); border-color: var(--accent); font-weight: 600; }
+  .button-primary:hover { background: var(--accent-strong); }
+  .button-outline:hover { background: var(--surface); border-color: var(--muted); }
+  @media (max-width: 640px) {
+    .arcade-header { min-height: 66px; padding: 14px 16px; gap: 8px; }
+    .arcade-brand { font-size: 14px; gap: 6px; }
+    .arcade-brand small, .arcade-back span { display: none; }
+    main { min-height: calc(100dvh - 66px); align-items: flex-start; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+</style>

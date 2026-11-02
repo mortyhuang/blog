@@ -41,10 +41,18 @@ export const flappyKlineProject: Project = {
   featured: true,
 };
 
+export const scratchCardProject: Project = {
+  id: 'scratch-card',
+  title: '幸运刮刮乐',
+  description: '四种经典刮刮乐玩法，分区刮开、图符翻倍与奖金累加的免费模拟体验。',
+  href: '/projects/scratch-card/',
+  cover: 'gradient',
+};
+
 // 在这里添加自己的作品或外部项目。
 // 顺序决定展示顺序；featured: false 可从首页隐藏，作品页仍会显示。
 // 站内地址以 / 开头；外部链接使用完整的 https:// 地址，自动在新标签页打开。
-export const projects: Project[] = [calendarProject, flappyKlineProject, landscapeProject, knotProject];
+export const projects: Project[] = [calendarProject, flappyKlineProject, scratchCardProject, landscapeProject, knotProject];
 
 export const featuredProjects = projects.filter((project) => project.featured !== false).slice(0, 2);
 
