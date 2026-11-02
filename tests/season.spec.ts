@@ -233,7 +233,7 @@ test('页头的两个菜单展开后都不会越出视口', async ({ page }) => 
 // 所以顺便断言 --bg 真的是当季的值，避免参数失效导致同一个配色被测了八遍。
 for (const season of SEASONS) {
   test(`${season} 季在明暗两套主题下都通过 WCAG AA`, async ({ page }) => {
-    for (const path of ['/', '/projects/year-calendar/']) {
+    for (const path of ['/', '/toys/year-calendar/']) {
       for (const colorScheme of ['light', 'dark'] as const) {
         await page.emulateMedia({ colorScheme });
         await page.goto(path === '/' ? `/?season=${season}` : `${path}?season=${season}`);

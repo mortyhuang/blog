@@ -53,7 +53,7 @@ test('seeded demonstration tickets stay within advertised prize tiers', () => {
 
 for (const definition of scratchGames) {
   test(`${definition.name}: switch, reveal, tally and reset`, async ({ page }) => {
-    await page.goto('/projects/scratch-card/');
+    await page.goto('/toys/scratch-card/');
     const game = page.locator('.scratch-game');
     const picker = game.locator(`[data-game="${definition.id}"]`);
     await expect(picker).toBeEnabled();
@@ -86,7 +86,7 @@ for (const definition of scratchGames) {
 }
 
 test('pointer scratching reveals only the touched region', async ({ page, isMobile }) => {
-  await page.goto('/projects/scratch-card/');
+  await page.goto('/toys/scratch-card/');
   await expect(page.locator('[data-reveal]')).toBeEnabled();
   const canvas = page.locator('.scratch-game canvas').first();
   await canvas.scrollIntoViewIfNeeded();

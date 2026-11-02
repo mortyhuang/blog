@@ -22,7 +22,7 @@ pnpm deploy    # 构建并发布到 Cloudflare Workers
 | --- | --- |
 | `src/config.ts` | 站名、作者、简介、邮箱等站点配置 |
 | `src/content/posts/` | 文章（Markdown / MDX，文件名即 URL） |
-| `src/data/projects.ts` | 作品与工具列表 |
+| `src/data/projects.ts` | toys 与工具列表（栏目网址 `/toys/`） |
 | `src/pages/` | 首页、归档、标签、关于、404 等页面 |
 | `src/styles/global.css` | 颜色与布局的 CSS 变量（深浅主题 × 四季配色） |
 | `public/` | favicon、分享图等静态资源 |

@@ -23,7 +23,7 @@ test('一句话编辑时不生成，真正失焦后只更新一次', async ({ pa
       else fillText.call(this, value, x, y, maxWidth);
     };
   });
-  await page.goto('/projects/year-calendar/');
+  await page.goto('/toys/year-calendar/');
   await page.getByRole('button', { name: '生成分享卡片' }).click();
   const dialog = page.locator('[data-calendar-share-dialog]');
   const image = dialog.locator('[data-share-image]');
@@ -59,7 +59,7 @@ test('分享入口与工具栏等高，下载复制和系统分享按钮等宽�
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
     Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {} });
   });
-  await page.goto('/projects/year-calendar/');
+  await page.goto('/toys/year-calendar/');
   await expect(page.getByRole('button', { name: '生成分享卡片' })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   for (const view of ['当月', '全年']) {

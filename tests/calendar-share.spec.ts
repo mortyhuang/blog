@@ -25,7 +25,7 @@ test('分享卡片和网页复用农历与假期数据，闰年和周起点正�
 test('全年分享卡片支持配色、文案、农历开关与真实高清 PNG 下载', async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/projects/year-calendar/');
+  await page.goto('/toys/year-calendar/');
   const year = Number(await page.locator('[data-holiday-calendar]').getAttribute('data-year')) - 1;
   await page.getByRole('button', { name: '全年', exact: true }).click();
   await page.getByRole('button', { name: '上一年', exact: true }).click();
@@ -94,7 +94,7 @@ test('单月卡片跟随页面月份，复制与系统分享发送 PNG 文件而
       },
     });
   });
-  await page.goto('/projects/year-calendar/');
+  await page.goto('/toys/year-calendar/');
   const previousLabel = await page.locator('[data-year-output]').textContent();
   await page.getByRole('button', { name: '上一月', exact: true }).click();
   await expect(page.locator('[data-year-output]')).not.toHaveText(previousLabel!);
@@ -151,7 +151,7 @@ test('生成失败可重试，关闭释放预览，快速切换不会导出旧�
     };
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => false });
   });
-  await page.goto('/projects/year-calendar/');
+  await page.goto('/toys/year-calendar/');
   const opener = page.getByRole('button', { name: '生成分享卡片' });
   await opener.click();
   const dialog = page.locator('[data-calendar-share-dialog]');
@@ -188,7 +188,7 @@ test('生成失败可重试，关闭释放预览，快速切换不会导出旧�
 test('分享弹窗明暗主题均无无障碍问题，320px 手机也不会横向越界', async ({ page, isMobile }, testInfo) => {
   for (const colorScheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme });
-    await page.goto('/projects/year-calendar/');
+    await page.goto('/toys/year-calendar/');
     await page.getByRole('button', { name: '生成分享卡片' }).click();
     await expect(page.locator('[data-share-image]')).toHaveAttribute('data-theme', 'paper');
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();

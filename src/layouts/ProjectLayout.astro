@@ -8,12 +8,12 @@ const { project } = Astro.props;
 <BaseLayout title={project.title} description={project.description}>
   <article class="project-detail">
     <header>
-      <a class="back-link" href="/projects/"><Icon name="back" size={15} /> 回到作品</a>
+      <a class="back-link" href="/toys/"><Icon name="back" size={15} /> 回到 toys</a>
       <h1>{project.title}<span class="title-dot">.</span></h1>
       <p class="project-detail-lead">{project.description}</p>
     </header>
     <div class="project-stage"><slot /></div>
     <section class="prose project-details"><slot name="details" /></section>
-    <a class="all-posts-link" href="/projects/">探索其他作品 <Icon name="arrow" size={16} /></a>
+    <a class="all-posts-link" href="/toys/">探索其他 toys <Icon name="arrow" size={16} /></a>
   </article>
 </BaseLayout>
