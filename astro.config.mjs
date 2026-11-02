@@ -6,6 +6,14 @@ export default defineConfig({
   site: process.env.SITE_URL || 'https://fieldnotes.example',
   integrations: [mdx(), sitemap()],
   trailingSlash: 'always',
+  // Static builds emit fallback redirect pages; Cloudflare uses public/_redirects for HTTP 301s.
+  redirects: {
+    '/projects/': '/toys/',
+    '/projects/noise-landscape/': '/toys/noise-landscape/',
+    '/projects/trefoil-knot/': '/toys/trefoil-knot/',
+    '/projects/year-calendar/': '/toys/year-calendar/',
+    '/projects/scratch-card/': '/toys/scratch-card/',
+  },
   devToolbar: { enabled: false },
   markdown: {
     shikiConfig: { themes: { light: 'github-light-high-contrast', dark: 'github-dark' }, wrap: true },

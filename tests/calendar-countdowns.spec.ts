@@ -80,7 +80,7 @@ test('全年和单月 PNG 实际绘制今日、假期、当前工资设置和正
       Reflect.apply(stroke, this, args);
     };
   });
-  await page.goto('/projects/year-calendar/');
+  await page.goto('/toys/year-calendar/');
   await expect(page.locator('[data-year-output]')).toHaveText('2026 年 1 月');
   await page.getByRole('button', { name: '移除每月 10 号发薪日' }).click();
   await page.locator('[data-pay-input]').fill('31');
@@ -157,7 +157,7 @@ test('页面全年与当月的日期也是正方形，今天保持高亮', async
   await page.clock.setFixedTime(new Date(2026, 0, 28, 12));
   for (const width of isMobile ? [390] : [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
-    await page.goto('/projects/year-calendar/');
+    await page.goto('/toys/year-calendar/');
     for (const view of ['当月', '全年']) {
       await page.getByRole('button', { name: view, exact: true }).click();
       const panel = page.locator(view === '全年' ? '[data-months-year]' : '[data-months-month]');

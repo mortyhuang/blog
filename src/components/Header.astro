@@ -5,7 +5,7 @@ import PickerMenu from './PickerMenu.astro';
 import { site } from '../config';
 import { SEASONS, SEASON_LABEL } from '../lib/season';
 const pathname = Astro.url.pathname;
-const links = [{ href: '/', text: '首页' }, { href: '/posts/', text: '文章' }, { href: '/projects/', text: '作品' }, { href: '/about/', text: '关于' }];
+const links = [{ href: '/', text: '首页' }, { href: '/posts/', text: '文章' }, { href: '/toys/', text: 'toys' }, { href: '/about/', text: '关于' }];
 const seasons = SEASONS;
 // 图标按季节渲染四份，由 CSS 根据 <html data-season> 显示对应的那个，
 // 这样季节变了不需要 JS 去换图标。首屏内联脚本会在绘制前定好 data-season。

@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const publicPages = ['/', '/posts/', '/posts/shader-landscape/', '/posts/one-yuan-doubling/', '/projects/', '/projects/noise-landscape/', '/projects/trefoil-knot/', '/projects/year-calendar/', '/about/'];
+const publicPages = ['/', '/posts/', '/posts/shader-landscape/', '/posts/one-yuan-doubling/', '/toys/', '/toys/noise-landscape/', '/toys/trefoil-knot/', '/toys/year-calendar/', '/about/'];
 
-test('首页显示文章、作品与真实导航', async ({ page }) => {
+test('首页显示文章、toys与真实导航', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
@@ -30,7 +30,7 @@ test('首次遵循系统主题，手动选择持久化且导航后保留', async
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.locator('html')).toHaveAttribute('data-theme-mode', 'manual');
 
-  await page.goto('/projects/');
+  await page.goto('/toys/');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -336,7 +336,7 @@ test('阅读进度、目录定位与高亮可用', async ({ page, isMobile }) =>
 });
 
 test('减少动态效果时默认暂停，仍可主动播放与暂停', async ({ page }) => {
-  await page.goto('/projects/trefoil-knot/');
+  await page.goto('/toys/trefoil-knot/');
   await expect(page.locator('[data-art-pause]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('[data-art-pause]')).toContainText('PAUSED');
   await page.getByRole('button', { name: '播放图形动画' }).click();
@@ -345,12 +345,12 @@ test('减少动态效果时默认暂停，仍可主动播放与暂停', async ({
   await expect(page.locator('[data-art-pause]')).toContainText('PAUSED');
 });
 
-test('作品详情页不显示星号、英文标语、示例标记和标签', async ({ page }) => {
-  for (const path of publicPages.filter((path) => path.startsWith('/projects/') && path !== '/projects/')) {
+test('toys详情页不显示星号、英文标语、示例标记和标签', async ({ page }) => {
+  for (const path of publicPages.filter((path) => path.startsWith('/toys/') && path !== '/toys/')) {
     await page.goto(path);
     const header = page.locator('.project-detail > header');
     await expect(header.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(header.getByRole('link', { name: '回到作品', exact: true })).toBeVisible();
+    await expect(header.getByRole('link', { name: '回到 toys', exact: true })).toBeVisible();
     await expect(header.locator('.project-detail-lead')).toBeVisible();
     await expect(header.locator('.eyebrow, .tiny-star, .project-example, .project-detail-tags')).toHaveCount(0);
     for (const text of ['✳', 'A LITTLE TOOL', 'A CREATIVE EXPERIMENT', '站内示例', '展示页']) {
@@ -361,43 +361,43 @@ test('作品详情页不显示星号、英文标语、示例标记和标签', as
 });
 
 test('页面不显示持续更新或不断更新等标语及突兀的英文小标', async ({ page }) => {
-  for (const path of ['/', '/posts/', '/projects/', '/about/']) {
+  for (const path of ['/', '/posts/', '/toys/', '/about/']) {
     await page.goto(path);
     for (const slogan of ['持续更新中', '不断更新中', '持续学习中', 'THE COLLECTION', 'SELECTED WRITING', 'THE LATEST', 'THINGS I\'VE BUILT', 'THE ARCHIVE', 'THE HUMAN BEHIND', 'ALWAYS A WORK IN PROGRESS', '展示页', '站内示例']) {
       await expect(page.locator('body')).not.toContainText(slogan);
     }
   }
-  await page.goto('/projects/');
+  await page.goto('/toys/');
   await expect(page.locator('.page-count')).not.toContainText('更新');
   await page.goto('/posts/');
   await expect(page.locator('.page-intro, .archive-summary, .archive-search')).toHaveCount(0);
 });
 
-test('作品入口、项目卡片与独立展示页可以直接体验', async ({ page, request }) => {
+test('toys入口、项目卡片与独立展示页可以直接体验', async ({ page, request }) => {
   await page.goto('/');
   await expect(page.locator('[data-project-preview]')).toHaveCount(2);
   await expect(page.locator('.project-preview-meta, .project-preview-kind, .project-preview-arrow, .project-card-tags, .project-card-meta')).toHaveCount(0);
-  await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '作品', exact: true }).click();
-  await expect(page).toHaveURL('/projects/');
-  await expect(page.locator('[data-project-card]')).toHaveCount(4);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('作品');
+  await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: 'toys', exact: true }).click();
+  await expect(page).toHaveURL('/toys/');
+  await expect(page.locator('[data-project-card]')).toHaveCount(5);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('toys');
   await expect(page.locator('.project-card-meta, .project-card-tags')).toHaveCount(0);
   for (const card of await page.locator('[data-project-card]').all()) {
     expect((await request.get((await card.getAttribute('href'))!)).ok()).toBeTruthy();
   }
   await page.locator('[data-project-card="noise-landscape"]').click();
-  await expect(page).toHaveURL('/projects/noise-landscape/');
+  await expect(page).toHaveURL('/toys/noise-landscape/');
   await expect(page.locator('.terrain-canvas')).toBeVisible();
   await page.locator('[data-amplitude]').evaluate((element: HTMLInputElement) => {
     element.value = '60';
     element.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await expect(page.locator('[data-amplitude-output]')).toHaveText('60');
-  await page.getByRole('link', { name: '回到作品' }).click();
+  await page.getByRole('link', { name: '回到 toys' }).click();
   await page.locator('[data-project-card="trefoil-knot"]').click();
-  await expect(page).toHaveURL('/projects/trefoil-knot/');
+  await expect(page).toHaveURL('/toys/trefoil-knot/');
   await expect(page.locator('#generative-art')).toBeVisible();
-  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '作品', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: 'toys', exact: true })).toHaveAttribute('aria-current', 'page');
   await page.getByRole('button', { name: '播放图形动画' }).click();
   await expect(page.locator('[data-art-pause]')).toContainText('LIVE');
   await page.getByRole('button', { name: '暂停图形动画' }).click();
@@ -405,7 +405,7 @@ test('作品入口、项目卡片与独立展示页可以直接体验', async ({
 });
 
 test('月历默认当月，全年视图渲染农历、假期标记与两组倒计时，并可切换年份', async ({ page }) => {
-  await page.goto('/projects/year-calendar/');
+  await page.goto('/toys/year-calendar/');
   const label = page.locator('[data-year-output]');
   const root = page.locator('[data-holiday-calendar]');
   const yearPanels = page.locator('[data-months-year]');
@@ -468,7 +468,7 @@ test('月历默认当月，全年视图渲染农历、假期标记与两组倒�
 });
 
 test('月历支持全年与当月两种视图，并可记住选择', async ({ page }) => {
-  await page.goto('/projects/year-calendar/');
+  await page.goto('/toys/year-calendar/');
   const yearPanels = page.locator('[data-months-year]');
   const monthPanel = page.locator('[data-months-month]');
   const label = page.locator('[data-year-output]');
@@ -530,7 +530,7 @@ test('月历支持全年与当月两种视图，并可记住选择', async ({ pa
 });
 
 test('发薪日可以自己设置并记住选择', async ({ page }) => {
-  await page.goto('/projects/year-calendar/');
+  await page.goto('/toys/year-calendar/');
   const rows = page.locator('[data-wage-output] .hc-row');
   await expect(rows).toHaveCount(1);
   await expect(rows.locator('.hc-row-label')).toHaveText('10号');
@@ -556,7 +556,7 @@ test('发薪日可以自己设置并记住选择', async ({ page }) => {
 });
 
 test('发薪进度条按上一次发薪到这次发薪的周期计算', async ({ page }) => {
-  await page.goto('/projects/year-calendar/');
+  await page.goto('/toys/year-calendar/');
   const rows = page.locator('[data-wage-output] .hc-row');
   await expect(rows).toHaveCount(1);
 
@@ -629,14 +629,14 @@ test('全站页头页脚最大 640px 且居中，导航与操作按钮不越界'
   }
 });
 
-test('作品画廊保持宽版，页头页脚和文章保留窄版布局', async ({ page, isMobile }) => {
-  test.skip(isMobile, '桌面测试额外覆盖作品画廊的所有断点');
+test('toys画廊保持宽版，页头页脚和文章保留窄版布局', async ({ page, isMobile }) => {
+  test.skip(isMobile, '桌面测试额外覆盖toys画廊的所有断点');
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/projects/');
+  await page.goto('/toys/');
   await expect(page.locator('body')).toHaveClass('layout-wide');
   const main = await page.locator('#main-content').boundingBox();
   expect(main!.width).toBeGreaterThan(1280);
-  // 作品变多时卡片会变窄，但画廊仍然铺满宽版容器。
+  // toys变多时卡片会变窄，但画廊仍然铺满宽版容器。
   const gallery = await page.locator('.projects-grid').boundingBox();
   expect(gallery!.width).toBeCloseTo(main!.width, 0);
   // 四列时每张卡略小于容器宽度的四分之一，用五分之一作为下限。
@@ -656,7 +656,7 @@ test('作品画廊保持宽版，页头页脚和文章保留窄版布局', async
       const index = grid.children.length;
       const card = templates[index % templates.length].cloneNode(true) as HTMLElement;
       card.dataset.projectCard = `fixture-${index}`;
-      if (index === 2) card.querySelector('h3')!.textContent = '一件带有更长名称的测试作品，用于验证卡片对齐';
+      if (index === 2) card.querySelector('h3')!.textContent = '一件带有更长名称的测试toys，用于验证卡片对齐';
       grid.append(card);
     }
   });
@@ -689,7 +689,7 @@ test('作品画廊保持宽版，页头页脚和文章保留窄版布局', async
         overflow: document.documentElement.scrollWidth > innerWidth,
       };
     });
-    // auto-fit：能排下几列就排几列，作品变多时列数只增不减。
+    // auto-fit：能排下几列就排几列，toys变多时列数只增不减。
     const expectedColumns = Math.max(1, Math.floor((layout.width + layout.gap) / (layout.trackMin + layout.gap)));
     expect(layout.columns, `${width}px`).toBe(expectedColumns);
     expect(layout.columns, `${width}px`).toBeGreaterThanOrEqual(previousColumns);
@@ -746,9 +746,9 @@ test('RSS、搜索、站点地图与 SEO 元数据完整且不泄露草稿', asy
   const sitemap = await request.get('/sitemap-0.xml');
   expect(sitemap.ok()).toBeTruthy();
   expect(await sitemap.text()).not.toContain('draft-growth');
-  expect(await sitemap.text()).toContain('/projects/noise-landscape/');
-  expect(await sitemap.text()).toContain('/projects/trefoil-knot/');
-  expect(await sitemap.text()).toContain('/projects/year-calendar/');
+  expect(await sitemap.text()).toContain('/toys/noise-landscape/');
+  expect(await sitemap.text()).toContain('/toys/trefoil-knot/');
+  expect(await sitemap.text()).toContain('/toys/year-calendar/');
   expect((await request.get('/robots.txt')).ok()).toBeTruthy();
   expect((await request.get('/og.png')).ok()).toBeTruthy();
   expect((await request.get('/posts/draft-growth/')).status()).toBe(404);

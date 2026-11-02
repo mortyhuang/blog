@@ -76,7 +76,7 @@ test('share-card-export-review', async ({ page, isMobile }, testInfo) => {
   ];
   for (const sample of cases) {
     await page.clock.setFixedTime(sample.today);
-    await page.goto('/projects/year-calendar/');
+    await page.goto('/toys/year-calendar/');
     await page.getByRole('button', { name: sample.view === 'year' ? '全年' : '当月', exact: true }).click();
     await expect(page.locator('[data-year-output]')).toHaveText(sample.view === 'year' ? '2026 年' : `2026 年 ${sample.month} 月`);
     await page.getByRole('button', { name: '生成分享卡片' }).click();
