@@ -54,7 +54,7 @@ export const scratchCardProject: Project = {
 // 站内地址以 / 开头；外部链接使用完整的 https:// 地址，自动在新标签页打开。
 export const projects: Project[] = [calendarProject, flappyKlineProject, scratchCardProject, landscapeProject, knotProject];
 
-export const featuredProjects = projects.filter((project) => project.featured !== false).slice(0, 2);
+export const featuredProjects = projects.filter((project) => project.featured !== false);
 
 export function isExternalProject(project: Project) {
   return /^https?:\/\//i.test(project.href);

@@ -13,3 +13,26 @@ const name = site.name.replace(/\.$/, '');
   </svg>
   <span>{name}{site.name.endsWith('.') && <span class="brand-dot">.</span>}</span>
 </a>
+
+<script>
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  for (const logo of document.querySelectorAll<HTMLAnchorElement>('.brand')) {
+    const symbol = logo.querySelector<SVGSVGElement>('.brand-symbol')!;
+    let spin: Animation | undefined;
+    logo.addEventListener('pointerenter', (event) => {
+      if (event.pointerType === 'touch' || reducedMotion.matches) return;
+      // Start at the current orientation when nudged again mid-spin.
+      const matrix = new DOMMatrixReadOnly(getComputedStyle(symbol).transform);
+      const angle = Math.atan2(matrix.b, matrix.a) * 180 / Math.PI;
+      spin?.cancel();
+      spin = symbol.animate(
+        [{ transform: `rotate(${angle}deg)` }, { transform: 'rotate(1080deg)' }],
+        { duration: 1200, easing: 'cubic-bezier(.12, .7, .18, 1)' },
+      );
+      // Let it coast to a stop even after the pointer leaves.
+    });
+    reducedMotion.addEventListener('change', () => {
+      if (reducedMotion.matches) spin?.cancel();
+    });
+  }
+</script>

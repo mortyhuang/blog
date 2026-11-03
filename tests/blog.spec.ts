@@ -8,10 +8,15 @@ test('首页显示文章、toys与真实导航', async ({ page }) => {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
   await expect(page).toHaveTitle(/mori/);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('保持好奇');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('文章');
+  await expect(page.locator('.home-page > section')).toHaveCount(2);
+  await expect(page.locator('.home-page > section').first()).toHaveAttribute('id', 'articles');
+  await expect(page.locator('.home-page .hero')).toHaveCount(0);
+  await expect(page.locator('.home-page')).not.toContainText('保持好奇');
+  await expect(page.getByRole('heading', { name: 'toys', exact: true })).toBeVisible();
   await expect(page.locator('.post-card')).toHaveCount(0);
   await expect(page.locator('[data-post-row]:visible')).toHaveCount(7);
-  await expect(page.locator('[data-project-preview]')).toHaveCount(2);
+  await expect(page.locator('[data-project-preview]')).toHaveCount(5);
   await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '关于' }).click();
   await expect(page).toHaveURL('/about/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('你好');
@@ -368,19 +373,20 @@ test('页面不显示持续更新或不断更新等标语及突兀的英文小�
     }
   }
   await page.goto('/toys/');
-  await expect(page.locator('.page-count')).not.toContainText('更新');
+  await expect(page.locator('.page-intro, .page-count')).toHaveCount(0);
   await page.goto('/posts/');
   await expect(page.locator('.page-intro, .archive-summary, .archive-search')).toHaveCount(0);
 });
 
 test('toys入口、项目卡片与独立展示页可以直接体验', async ({ page, request }) => {
   await page.goto('/');
-  await expect(page.locator('[data-project-preview]')).toHaveCount(2);
+  await expect(page.locator('[data-project-preview]')).toHaveCount(5);
   await expect(page.locator('.project-preview-meta, .project-preview-kind, .project-preview-arrow, .project-card-tags, .project-card-meta')).toHaveCount(0);
   await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: 'toys', exact: true }).click();
   await expect(page).toHaveURL('/toys/');
   await expect(page.locator('[data-project-card]')).toHaveCount(5);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('toys');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'toys 列表' })).toBeVisible();
   await expect(page.locator('.project-card-meta, .project-card-tags')).toHaveCount(0);
   for (const card of await page.locator('[data-project-card]').all()) {
     expect((await request.get((await card.getAttribute('href'))!)).ok()).toBeTruthy();
@@ -629,87 +635,36 @@ test('全站页头页脚最大 640px 且居中，导航与操作按钮不越界'
   }
 });
 
-test('toys画廊保持宽版，页头页脚和文章保留窄版布局', async ({ page, isMobile }) => {
-  test.skip(isMobile, '桌面测试额外覆盖toys画廊的所有断点');
-  await page.setViewportSize({ width: 1440, height: 1000 });
+test('toys 使用与文章一致的窄版无封面文字列表', async ({ page, isMobile }) => {
+  test.skip(isMobile, '桌面测试额外覆盖列表的所有断点');
   await page.goto('/toys/');
-  await expect(page.locator('body')).toHaveClass('layout-wide');
-  const main = await page.locator('#main-content').boundingBox();
-  expect(main!.width).toBeGreaterThan(1280);
-  // toys变多时卡片会变窄，但画廊仍然铺满宽版容器。
-  const gallery = await page.locator('.projects-grid').boundingBox();
-  expect(gallery!.width).toBeCloseTo(main!.width, 0);
-  // 四列时每张卡略小于容器宽度的四分之一，用五分之一作为下限。
-  expect((await page.locator('[data-project-card]').first().boundingBox())!.width).toBeGreaterThan(main!.width / 5);
-  expect((await page.locator('.projects-intro').boundingBox())!.height).toBeLessThan(210);
-  for (const selector of ['.site-header', '.site-footer']) {
-    const box = await page.locator(selector).boundingBox();
-    expect(box!.width).toBe(640);
-    expect(box!.width).toBeLessThan(main!.width);
-    expect(box!.x + box!.width / 2).toBeCloseTo(main!.x + main!.width / 2, 0);
-  }
-
-  // 只在测试 DOM 中补足卡片，验证真实清单扩展时的网格；不增加公开示例。
-  await page.locator('.projects-grid').evaluate((grid) => {
-    const templates = Array.from(grid.children);
-    while (grid.children.length < 10) {
-      const index = grid.children.length;
-      const card = templates[index % templates.length].cloneNode(true) as HTMLElement;
-      card.dataset.projectCard = `fixture-${index}`;
-      if (index === 2) card.querySelector('h3')!.textContent = '一件带有更长名称的测试toys，用于验证卡片对齐';
-      grid.append(card);
-    }
-  });
-  let previousColumns = 0;
-  for (const width of [320, 390, 640, 768, 1050, 1280, 1440, 1600, 1920, 2560]) {
-    await page.setViewportSize({ width, height: 1000 });
-    // 连续调整视口时，等媒体查询与布局在渲染帧中生效。
-    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-    const layout = await page.evaluate(() => {
-      const gallery = document.querySelector('.projects-grid')!;
-      const bounds = gallery.getBoundingClientRect();
-      const cards = Array.from(gallery.children);
-      const top = cards[0].getBoundingClientRect().top;
-      const firstRow = cards.filter((card) => Math.abs(card.getBoundingClientRect().top - top) < 1);
-      const style = getComputedStyle(gallery);
-      const header = document.querySelector('.site-header')!.getBoundingClientRect();
-      const footer = document.querySelector('.site-footer')!.getBoundingClientRect();
-      return {
-        width: bounds.width,
-        center: bounds.left + bounds.width / 2,
-        viewport: document.documentElement.clientWidth,
-        gap: parseFloat(style.columnGap),
-        trackMin: parseFloat(style.getPropertyValue('--gallery-track-min')) * parseFloat(getComputedStyle(document.documentElement).fontSize),
-        columns: style.gridTemplateColumns.split(' ').filter((track) => parseFloat(track) > 0).length,
-        actionBottoms: firstRow.map((card) => card.querySelector('.project-card-action')!.getBoundingClientRect().bottom),
-        headerWidth: header.width,
-        footerWidth: footer.width,
-        headerCenter: header.left + header.width / 2,
-        footerCenter: footer.left + footer.width / 2,
-        overflow: document.documentElement.scrollWidth > innerWidth,
-      };
-    });
-    // auto-fit：能排下几列就排几列，toys变多时列数只增不减。
-    const expectedColumns = Math.max(1, Math.floor((layout.width + layout.gap) / (layout.trackMin + layout.gap)));
-    expect(layout.columns, `${width}px`).toBe(expectedColumns);
-    expect(layout.columns, `${width}px`).toBeGreaterThanOrEqual(previousColumns);
-    previousColumns = layout.columns;
-    expect(layout.width, `${width}px`).toBeLessThanOrEqual(1800);
-    expect(Math.abs(layout.center - layout.viewport / 2), `${width}px`).toBeLessThan(1);
-    expect(Math.max(...layout.actionBottoms) - Math.min(...layout.actionBottoms), `${width}px`).toBeLessThan(1);
-    expect(layout.overflow, `${width}px`).toBe(false);
-    expect(layout.headerWidth, `${width}px`).toBeCloseTo(layout.footerWidth, 0);
-    expect(layout.headerWidth, `${width}px`).toBeLessThanOrEqual(640);
-    expect(Math.abs(layout.headerCenter - layout.viewport / 2), `${width}px`).toBeLessThan(1);
-    expect(Math.abs(layout.footerCenter - layout.viewport / 2), `${width}px`).toBeLessThan(1);
-    if (width >= 768) {
-      expect(layout.headerWidth, `${width}px`).toBe(640);
-      expect(layout.headerWidth, `${width}px`).toBeLessThan(layout.width);
-    }
-  }
-  expect((await page.locator('#main-content').boundingBox())!.width).toBe(1800);
-  await page.goto('/posts/shader-landscape/');
   await expect(page.locator('body')).not.toHaveClass(/layout-wide/);
+  await expect(page.locator('.toys-list .post-row')).toHaveCount(5);
+  await expect(page.locator('.cover-art, .project-card, .projects-grid, .project-card-action')).toHaveCount(0);
+  for (const width of [320, 390, 640, 768, 1050, 1440, 1920, 2560]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    const list = await page.locator('.toys-list').boundingBox();
+    const header = await page.locator('.site-header').boundingBox();
+    const footer = await page.locator('.site-footer').boundingBox();
+    expect(list!.width).toBeLessThanOrEqual(640);
+    expect(list!.width).toBeCloseTo(header!.width, 0);
+    expect(list!.width).toBeCloseTo(footer!.width, 0);
+    expect(list!.x + list!.width / 2).toBeCloseTo(width / 2, 0);
+    const rows = await page.locator('[data-project-card]').all();
+    let previousBottom = 0;
+    for (const row of rows) {
+      const bounds = (await row.boundingBox())!;
+      expect(bounds.width).toBeCloseTo(list!.width, 0);
+      expect(bounds.y).toBeGreaterThanOrEqual(previousBottom);
+      previousBottom = bounds.y + bounds.height;
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  }
+  await page.goto('/');
+  await expect(page.locator('[data-project-preview] .post-row-title')).toHaveCount(5);
+  await expect(page.locator('.home-page .cover-art')).toHaveCount(0);
+  await page.goto('/posts/shader-landscape/');
   expect((await page.locator('#article-content').boundingBox())!.width).toBe(640);
 });
 
@@ -765,10 +720,12 @@ test('所有主要页面在当前屏幕宽度无横向溢出或运行时错误',
     await page.goto(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     expect(overflow, path).toBe(false);
-    if (path !== '/posts/') {
-      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    } else {
+    if (path === '/toys/') {
+      await expect(page.getByRole('region', { name: 'toys 列表' })).toBeVisible();
+    } else if (path === '/posts/') {
       await expect(page.locator('.archive-main')).toBeVisible();
+    } else {
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     }
   }
   expect(errors).toEqual([]);
