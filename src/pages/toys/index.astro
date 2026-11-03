@@ -4,12 +4,14 @@ import ProjectCard from '../../components/ProjectCard.astro';
 import Icon from '../../components/Icon.astro';
 import { projects } from '../../data/projects';
 ---
-<BaseLayout title="toys" description="把想法做成可以直接体验的 toys。" wide>
-  <div class="page-intro projects-intro">
-    <h1>toys<span class="title-dot">.</span></h1>
-    <span class="page-count" hidden></span>
-  </div>
+<BaseLayout title="toys" description="把想法做成可以直接体验的 toys。">
+  <div class="toys-page">
   {projects.length > 0 ? <section aria-label="toys 列表">
-    <div class="projects-grid">{projects.map((project) => <ProjectCard project={project} />)}</div>
+    <div class="toys-list">{projects.map((project) => <ProjectCard project={project} />)}</div>
   </section> : <section class="filter-empty"><Icon name="terminal" size={32} /><h2>第一个 toy 正在路上</h2><p>这里会放一些 toys，欢迎之后再来看看。</p><a href="/posts/" class="button button-primary">先读一些文章 <Icon name="arrow" size={16} /></a></section>}
+  </div>
 </BaseLayout>
+
+<style>
+  .toys-page { width: 100%; max-width: var(--reading-width); margin: 32px auto 0; }
+</style>
