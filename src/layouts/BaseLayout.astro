@@ -1,0 +1,40 @@
+---
+import '@fontsource-variable/inter';
+import '@fontsource-variable/jetbrains-mono';
+import '../styles/global.css';
+import { site } from '../config';
+
+interface Props { title?: string; description?: string; }
+const { title, description = site.description } = Astro.props;
+const fullTitle = title || site.title;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const image = new URL('/avatar.jpg', Astro.site);
+---
+<!doctype html>
+<html lang={site.language}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f4f5f7" />
+    <title>{fullTitle}</title>
+    <link rel="icon" type="image/svg+xml" href="/avatar-icon.svg" />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:alt" content="日历" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={image} />
+    <meta property="og:locale" content="zh_CN" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到正文</a>
+    <main id="main-content" class="container"><slot /></main>
+    <footer class="standalone-footer container"><a href="https://themori.space/" aria-label="返回主站"><img src="/avatar-icon.svg" alt="" width="32" height="32" /></a></footer>
+  </body>
+</html>

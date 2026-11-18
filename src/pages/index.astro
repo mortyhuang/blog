@@ -1,5 +1,19 @@
-<!doctype html>
-<html lang="zh-CN">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>新站点</title></head>
-  <body><main><h1>新站点</h1></main></body>
-</html>
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HolidayCalendar from '../components/HolidayCalendar.astro';
+import { formatTodayLabel } from '../lib/calendar-view';
+
+const todayLabel = formatTodayLabel(new Date());
+---
+<BaseLayout title="日历" description="农历、假期与调休，以及年度进度和倒计时。">
+  <div class="standalone-calendar">
+    <div class="cal-masthead">
+      <div class="cal-masthead-title">
+        <h1>日历</h1>
+        <p class="cal-masthead-sub">农历节气 · 法定假期与调休 · 年度节奏看板</p>
+      </div>
+      <span class="cal-masthead-pill"><span class="cal-masthead-dot" aria-hidden="true"></span><span data-live-today>{todayLabel}</span></span>
+    </div>
+    <HolidayCalendar />
+  </div>
+</BaseLayout>

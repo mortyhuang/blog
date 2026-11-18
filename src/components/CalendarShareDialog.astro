@@ -1,0 +1,221 @@
+---
+import Icon from './Icon.astro';
+---
+
+<dialog class="hc-share-dialog" id="hc-share-dialog" data-calendar-share-dialog aria-labelledby="hc-share-title" aria-describedby="hc-share-description">
+  <header class="hc-share-head">
+    <div>
+      <h2 id="hc-share-title">把日子装进一张卡片</h2>
+      <p id="hc-share-description">留住这一页时光。</p>
+    </div>
+    <button type="button" class="hc-share-close" data-share-close aria-label="关闭分享卡片" autofocus>
+      <Icon name="close" size={18} />
+    </button>
+  </header>
+
+  <div class="hc-share-body">
+    <figure class="hc-share-preview" data-share-preview aria-busy="false">
+      <div class="hc-share-stage" data-share-stage data-share-format="year">
+        <p class="hc-share-placeholder" data-share-placeholder>正在绘制你的日历…</p>
+        <a data-share-original target="_blank" rel="noopener noreferrer" aria-label="查看分享卡片原图" hidden>
+          <img data-share-image alt="" />
+        </a>
+      </div>
+      <figcaption>高清 PNG · 点击预览查看原图，手机可长按保存</figcaption>
+    </figure>
+
+    <div class="hc-share-settings">
+      <fieldset>
+        <legend>卡片内容</legend>
+        <div class="hc-share-segments">
+          <label><input type="radio" name="calendar-share-view" value="year" data-share-view checked /><span>全年海报</span></label>
+          <label><input type="radio" name="calendar-share-view" value="month" data-share-view /><span>单月卡片</span></label>
+        </div>
+      </fieldset>
+      <label class="hc-share-caption">
+        <span>写一句话</span>
+        <input type="text" data-share-caption maxlength="36" value="把日子过成喜欢的样子。" placeholder="留一句想对自己说的话" />
+      </label>
+      <label class="hc-share-check">
+        <input type="checkbox" data-share-lunar checked />
+        显示农历与节气
+      </label>
+      <label class="hc-share-check">
+        <input type="checkbox" data-share-countdowns checked />
+        显示放假与发薪倒计时
+      </label>
+      <p class="hc-share-note">倒计时以今天为准，预计发薪日期沿用页面设置。图片仅在本地生成；不想分享发薪时间时，可以关闭倒计时。</p>
+    </div>
+  </div>
+
+  <footer class="hc-share-footer">
+    <div class="hc-share-status" role="status" aria-live="polite" aria-atomic="true">
+      <span data-share-status>正在准备图片…</span>
+      <button type="button" class="hc-share-retry" data-share-retry hidden>重新生成</button>
+    </div>
+    <div class="hc-share-actions">
+      <button type="button" class="hc-share-action is-primary" data-share-download disabled>
+        <Icon name="arrow" size={15} />下载 PNG
+      </button>
+      <button type="button" class="hc-share-action" data-share-copy hidden disabled>
+        <Icon name="copy" size={15} />复制图片
+      </button>
+      <button type="button" class="hc-share-action" data-share-native hidden disabled>
+        <Icon name="arrow-up" size={15} />系统分享
+      </button>
+    </div>
+  </footer>
+</dialog>
+
+<style is:global>
+  body.calendar-share-open { overflow: hidden; }
+  .holiday-calendar .hc-share-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 30px;
+    padding: 0 11px;
+    border: 1px solid var(--accent-strong);
+    border-radius: 8px;
+    background: var(--accent-strong);
+    color: var(--on-accent);
+    font: 500 11.5px var(--sans);
+    cursor: pointer;
+    transition: background 0.16s ease, border-color 0.16s ease;
+  }
+  .holiday-calendar .hc-share-trigger:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .hc-share-dialog {
+    width: min(860px, calc(100% - 32px));
+    max-height: calc(100dvh - 40px);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 24px 72px rgba(9, 9, 11, 0.18);
+  }
+  .hc-share-dialog::backdrop {
+    background: rgba(9, 9, 11, 0.44);
+    backdrop-filter: blur(8px);
+  }
+  .hc-share-dialog[open] { display: flex; flex-direction: column; }
+  .hc-share-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .hc-share-head h2 { font-size: 17px; font-weight: 650; letter-spacing: -0.02em; color: var(--heading); }
+  .hc-share-head p { margin-top: 3px; font-size: 12px; color: var(--muted); }
+  .hc-share-close {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .hc-share-close:hover { background: var(--surface-soft); color: var(--heading); }
+  .hc-share-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 252px;
+    gap: 24px;
+    padding: 24px;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .hc-share-preview { margin: 0; min-width: 0; }
+  .hc-share-stage {
+    display: grid;
+    place-items: center;
+    min-height: 280px;
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface-soft);
+  }
+  .hc-share-stage a { display: block; width: 100%; max-width: 390px; }
+  .hc-share-stage img { display: block; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 8px 24px rgba(9, 9, 11, 0.1); }
+  .hc-share-placeholder { color: var(--muted); font-size: 12.5px; padding: 20px 0; }
+  .hc-share-preview figcaption { margin-top: 10px; font-size: 11px; text-align: center; color: var(--muted); }
+  .hc-share-settings { display: grid; align-content: start; gap: 20px; min-width: 0; }
+  .hc-share-settings fieldset { padding: 0; margin: 0; border: 0; min-width: 0; }
+  .hc-share-settings legend, .hc-share-caption > span { margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--heading); }
+  .hc-share-segments { display: flex; padding: 3px; border-radius: 10px; background: var(--surface-soft); border: 1px solid var(--line); }
+  .hc-share-segments label { flex: 1; min-width: 0; }
+  .hc-share-segments input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .hc-share-segments span {
+    display: block;
+    padding: 7px 6px;
+    text-align: center;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .hc-share-segments input:checked + span { background: var(--surface); color: var(--heading); font-weight: 600; box-shadow: 0 1px 3px rgba(9, 9, 11, 0.08); }
+  .hc-share-segments input:focus-visible + span { outline: 2px solid var(--heading); outline-offset: 2px; }
+  .hc-share-caption { display: grid; }
+  .hc-share-caption input {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12.5px;
+    transition: border-color 0.15s ease;
+  }
+  .hc-share-caption input:hover { border-color: var(--muted); }
+  .hc-share-check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text); cursor: pointer; }
+  .hc-share-check input { accent-color: var(--accent-strong); width: 15px; height: 15px; margin: 0; }
+  .hc-share-note { font-size: 11.5px; color: var(--muted); line-height: 1.75; }
+  .hc-share-footer { padding: 16px 24px 20px; border-top: 1px solid var(--line); flex-shrink: 0; }
+  .hc-share-status { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 18px; font-size: 11.5px; color: var(--muted); }
+  .hc-share-retry { padding: 0; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; color: var(--heading); }
+  .hc-share-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .hc-share-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 42px;
+    min-width: 0;
+    flex: 1;
+    padding: 0 14px;
+    white-space: nowrap;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: var(--surface);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--heading);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .hc-share-action:hover:not(:disabled) { background: var(--surface-soft); border-color: var(--muted); }
+  .hc-share-action.is-primary { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); }
+  .hc-share-action.is-primary:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); }
+  .hc-share-action:disabled { opacity: .45; cursor: wait; }
+  @media (max-width: 640px) {
+    .hc-share-dialog { width: calc(100% - 20px); max-height: calc(100dvh - 24px); border-radius: 14px; }
+    .hc-share-head { padding: 16px; }
+    .hc-share-head h2 { font-size: 16px; }
+    .hc-share-body { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 18px; }
+    .hc-share-settings { order: -1; gap: 15px; }
+    .hc-share-stage a { max-width: 270px; }
+    .hc-share-footer { padding: 14px 16px 16px; }
+    .hc-share-action { gap: 5px; padding: 0 8px; font-size: 11px; }
+  }
+</style>
