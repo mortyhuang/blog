@@ -1,3 +1,9 @@
 import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
 
-export default defineConfig({ trailingSlash: 'always', devToolbar: { enabled: false } });
+export default defineConfig({
+  site: 'https://fly.themori.space',
+  integrations: [sitemap()],
+  trailingSlash: 'always',
+  devToolbar: { enabled: false },
+});
