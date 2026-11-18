@@ -1,0 +1,9 @@
+/about / 301
+/about/ / 301
+/projects /toys/ 301
+/projects/ /toys/ 301
+/projects/year-calendar /toys/calendar/ 301
+/projects/year-calendar/ /toys/calendar/ 301
+/toys/year-calendar /toys/calendar/ 301
+/toys/year-calendar/ /toys/calendar/ 301
+/projects/* /toys/:splat 301

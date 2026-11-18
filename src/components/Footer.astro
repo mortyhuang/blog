@@ -1,0 +1,22 @@
+---
+import Icon from './Icon.astro';
+import PickerMenu from './PickerMenu.astro';
+import { site } from '../config';
+import { SEASONS, SEASON_LABEL } from '../lib/season';
+const seasons = SEASONS;
+// 图标按季节渲染四份，由 CSS 根据 <html data-season> 显示对应的那个，
+// 这样季节变了不需要 JS 去换图标。首屏内联脚本会在绘制前定好 data-season。
+const seasonIcon = { spring: 'sprout', summer: 'sun', autumn: 'leaf', winter: 'snowflake' } as const;
+---
+<footer class="site-footer container">
+  <div class="footer-inner">
+    <span class="footer-copy">© {site.since}–{new Date().getUTCFullYear()}</span>
+    <div class="footer-actions">
+      {site.season.enabled && (
+        <PickerMenu name="season" label="季节主题" autoLabel="跟随节气" options={seasons.map((season) => ({ value: season, label: `${SEASON_LABEL[season]}季`, icon: seasonIcon[season] }))}>
+          {seasons.map((season) => <Icon name={seasonIcon[season]} class="season-icon" data-season-icon={season} size={17} />)}
+        </PickerMenu>
+      )}
+    </div>
+  </div>
+</footer>

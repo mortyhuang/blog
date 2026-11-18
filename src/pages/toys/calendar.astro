@@ -1,0 +1,12 @@
+---
+import ProjectLayout from '../../layouts/ProjectLayout.astro';
+import HolidayCalendar from '../../components/HolidayCalendar.astro';
+import { calendarProject } from '../../data/projects';
+---
+<ProjectLayout project={calendarProject} wideStage hideIntro>
+  <HolidayCalendar />
+  <Fragment slot="details">
+    <h2>数据来源</h2>
+    <p>放假与调休安排整理自国务院办公厅公告（via <a href="https://github.com/lanceliao/china-holiday-calender" rel="noopener noreferrer" target="_blank">china-holiday-calender</a>），农历、节气与节日来自 <a href="https://github.com/6tail/lunar-javascript" rel="noopener noreferrer" target="_blank">lunar-javascript</a>。</p>
+  </Fragment>
+</ProjectLayout>

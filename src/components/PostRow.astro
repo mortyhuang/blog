@@ -1,0 +1,14 @@
+---
+import type { Post } from '../lib/posts';
+import { postUrl, formatDate } from '../lib/posts';
+interface Props { post: Post; filterable?: boolean }
+const { post, filterable = false } = Astro.props;
+---
+<article class="post-row" data-post-row data-tags={JSON.stringify(post.data.tags)}>
+  <a href={postUrl(post)} class="post-row-link">
+    <h3 class="post-row-title">{post.data.title}</h3>
+    <div class="post-row-meta">
+      <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+    </div>
+  </a>
+</article>

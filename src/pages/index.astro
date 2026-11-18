@@ -1,5 +1,65 @@
-<!doctype html>
-<html lang="zh-CN">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>新站点</title></head>
-  <body><main><h1>新站点</h1></main></body>
-</html>
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostRow from '../components/PostRow.astro';
+import Icon from '../components/Icon.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { getPosts } from '../lib/posts';
+import { featuredProjects } from '../data/projects';
+import { site } from '../config';
+
+const posts = await getPosts();
+---
+<BaseLayout>
+<div class="home-page">
+  <section class="home-about" aria-label="关于我">
+    <img src="/avatar.jpg" alt={site.author} width="64" height="64" decoding="async" />
+    <div class="home-message"><h1>Morty</h1><p><span data-home-typing aria-label="Hello.">Hello.</span></p></div>
+  </section>
+  <section id="articles" class="home-section" aria-labelledby="articles-title">
+    <div class="section-heading">
+      <div class="section-title"><h2 id="articles-title">文章</h2></div>
+      <a class="small-link" href="/posts/">全部文章 <Icon name="arrow" size={14} /></a>
+    </div>
+    <div class="home-posts">{posts.map((post) => <PostRow post={post} />)}</div>
+  </section>
+
+  <section id="projects" class="home-section" aria-labelledby="projects-title">
+    <div class="section-heading">
+      <div class="section-title"><h2 id="projects-title">toys</h2></div>
+      <a class="small-link" href="/toys/">全部 toys <Icon name="arrow" size={14} /></a>
+    </div>
+    <div class="project-previews">{featuredProjects.map((project) => <ProjectCard project={project} compact />)}</div>
+  </section>
+</div>
+</BaseLayout>
+
+<script>
+  const typing = document.querySelector<HTMLElement>('[data-home-typing]');
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (typing && !motion.matches) {
+    const message = 'Hello.';
+    let length = message.length;
+    let deleting = true;
+    const tick = () => {
+      length += deleting ? -1 : 1;
+      typing.textContent = message.slice(0, length);
+      if (length === 0 || length === message.length) {
+        deleting = length === message.length;
+        window.setTimeout(tick, length === 0 ? 500 : 1800);
+      } else {
+        window.setTimeout(tick, deleting ? 110 : 180);
+      }
+    };
+    window.setTimeout(tick, 1800);
+  }
+</script>
+
+<style>
+  .home-about { display: flex; align-items: flex-start; gap: 12px; }
+  .home-about img { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+  .home-message h1 { margin: 0 0 5px; color: var(--muted); font-size: 12px; font-weight: 500; line-height: 1.4; }
+  .home-message p { display: inline-block; min-width: 65px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 3px 12px 12px 12px; background: var(--surface); color: var(--text); line-height: 1.5; }
+  [data-home-typing]::after { content: ''; display: inline-block; height: 1em; margin-left: 2px; border-right: 1px solid currentColor; vertical-align: -.12em; animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { [data-home-typing]::after { animation: none; } }
+</style>

@@ -1,0 +1,38 @@
+---
+import { site } from '../config';
+interface Props { small?: boolean }
+const { small = false } = Astro.props;
+const name = site.name.replace(/\.$/, '');
+---
+<a href="/" class:list={['brand', { 'brand-small': small }]} aria-label={`${site.name} 首页`}>
+  <svg class="brand-symbol" viewBox="0 0 36 36" width="35" height="35" aria-hidden="true">
+    <g fill="currentColor">
+      {Array.from({ length: 8 }, (_, i) => <ellipse cx="18" cy="8" rx="2.3" ry="6.2" transform={`rotate(${i * 45} 18 18)`} />)}
+      <circle cx="18" cy="18" r="3.2" />
+    </g>
+  </svg>
+  <span>{name}{site.name.endsWith('.') && <span class="brand-dot">.</span>}</span>
+</a>
+
+<script>
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  for (const logo of document.querySelectorAll<HTMLAnchorElement>('.brand')) {
+    const symbol = logo.querySelector<SVGSVGElement>('.brand-symbol')!;
+    let spin: Animation | undefined;
+    logo.addEventListener('pointerenter', (event) => {
+      if (event.pointerType === 'touch' || reducedMotion.matches) return;
+      // Start at the current orientation when nudged again mid-spin.
+      const matrix = new DOMMatrixReadOnly(getComputedStyle(symbol).transform);
+      const angle = Math.atan2(matrix.b, matrix.a) * 180 / Math.PI;
+      spin?.cancel();
+      spin = symbol.animate(
+        [{ transform: `rotate(${angle}deg)` }, { transform: 'rotate(1080deg)' }],
+        { duration: 1200, easing: 'cubic-bezier(.12, .7, .18, 1)' },
+      );
+      // Let it coast to a stop even after the pointer leaves.
+    });
+    reducedMotion.addEventListener('change', () => {
+      if (reducedMotion.matches) spin?.cancel();
+    });
+  }
+</script>

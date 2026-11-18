@@ -1,0 +1,17 @@
+---
+import type { Post } from '../lib/posts';
+import { postUrl, formatDate, readingTime } from '../lib/posts';
+import CoverArt from './CoverArt.astro';
+import Icon from './Icon.astro';
+interface Props { post: Post; index?: number; }
+const { post, index = 0 } = Astro.props;
+---
+<article class="post-card">
+  <a class="card-cover-link" href={postUrl(post)} tabindex="-1" aria-hidden="true"><CoverArt kind={post.data.cover} /><span class="card-index">0{index + 1}</span><span class="card-cover-arrow"><Icon name="arrow-up" size={19} /></span></a>
+  <div class="card-body">
+    <div class="post-meta"><time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time><span class="meta-right">{readingTime(post.body)} 分钟阅读</span></div>
+    <h3><a href={postUrl(post)}>{post.data.title}<Icon name="arrow-up" size={18} /></a></h3>
+    <p>{post.data.description}</p>
+    <div class="card-tags">{post.data.tags.slice(0, 3).map((tag) => <a href={`/posts/?tag=${encodeURIComponent(tag)}`}>#{tag}</a>)}</div>
+  </div>
+</article>

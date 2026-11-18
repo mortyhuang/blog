@@ -1,0 +1,7 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Icon from '../components/Icon.astro';
+---
+<BaseLayout title="这条小径还不存在">
+  <section class="not-found"><span class="not-found-code mono">404</span><span class="large-sparkle">✳</span><h1>好像走进了<br />一片未开垦的花园。</h1><p>你要找的页面可能已搬走，或者还在生长中。</p><div class="hero-actions"><a href="/" class="button button-primary">回到花园 <Icon name="arrow" size={17} /></a><button class="text-link" data-search-open><Icon name="search" size={17} /> 搜索文章</button></div></section>
+</BaseLayout>

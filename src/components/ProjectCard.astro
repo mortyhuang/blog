@@ -1,0 +1,21 @@
+---
+import { isExternalProject, type Project } from '../data/projects';
+
+interface Props { project: Project; compact?: boolean }
+const { project, compact = false } = Astro.props;
+const external = isExternalProject(project);
+const label = external ? `${project.title}（在新标签页打开）` : project.title;
+---
+<article class="post-row">
+  <a
+    href={project.href}
+    class:list={['post-row-link', compact ? 'project-preview' : 'project-row']}
+    data-project-card={!compact ? project.id : undefined}
+    data-project-preview={compact ? project.id : undefined}
+    target={external ? '_blank' : undefined}
+    rel={external ? 'noopener noreferrer' : undefined}
+    aria-label={label}
+  >
+    <h3 class="post-row-title">{project.title}</h3>
+  </a>
+</article>

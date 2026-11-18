@@ -1,0 +1,52 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostRow from '../../components/PostRow.astro';
+import Icon from '../../components/Icon.astro';
+import { getPosts, getTags } from '../../lib/posts';
+const posts = await getPosts();
+const tags = getTags(posts);
+const years = [...new Set(posts.map((post) => post.data.date.getUTCFullYear()))];
+---
+<BaseLayout title="文章" description="关于前端开发、创意编程与设计实践的全部文章。">
+  <div class="archive-layout">
+    <section class="archive-main" aria-label="文章列表">
+      <span class="sr-only" data-result-count>{posts.length}</span>
+      <div class="archive-tags" role="navigation" aria-label="按话题筛选">
+        {tags.map(([tag, count]) => (
+          <a href={`/posts/?tag=${encodeURIComponent(tag)}`} data-tag-filter={tag}>
+            <span>#{tag}</span>
+            <span>{count}</span>
+          </a>
+        ))}
+      </div>
+      <div class="active-tag" data-active-tag hidden>
+        <span>话题：<strong data-active-tag-name></strong></span>
+        <button data-clear-tag aria-label="清除话题筛选"><Icon name="close" size={14} /></button>
+      </div>
+      <div data-filter-list>
+        {years.map((year) => (
+          <section class="year-group" data-year-group>
+            <h2 class="year-title">
+              {year}
+              <span class="year-line"></span>
+              <span class="year-count">{posts.filter((post) => post.data.date.getUTCFullYear() === year).length} 篇</span>
+            </h2>
+            {posts.filter((post) => post.data.date.getUTCFullYear() === year).map((post) => (
+              <PostRow post={post} filterable />
+            ))}
+          </section>
+        ))}
+      </div>
+      <div class="filter-empty" data-filter-empty hidden>
+        <Icon name="leaf" size={32} />
+        <h2>这块花园还在生长</h2>
+        <p>暂时没有符合条件的话题文章，试试其他话题。</p>
+        <button class="button button-primary" data-reset-filters>查看全部文章 <Icon name="arrow" size={15} /></button>
+      </div>
+    </section>
+  </div>
+  <script>
+    import { initFilters } from '../../scripts/filters';
+    initFilters({ useUrl: true });
+  </script>
+</BaseLayout>

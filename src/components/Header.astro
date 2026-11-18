@@ -1,0 +1,21 @@
+---
+import Icon from './Icon.astro';
+import PickerMenu from './PickerMenu.astro';
+const themeIcon = { auto: 'ring', light: 'contrast', dark: 'disc' } as const;
+const pathname = Astro.url.pathname;
+const links = [{ href: '/', text: '主页' }, { href: '/posts/', text: '文章' }, { href: '/toys/', text: 'toys' }];
+---
+<header class="site-header container">
+  <nav class="main-nav" aria-label="主导航">
+    {links.map(({ href, text }) => <a href={href} aria-current={(href === '/' ? pathname === '/' : pathname.startsWith(href)) ? 'page' : undefined}>{text}</a>)}
+  </nav>
+  <div class="header-actions">
+    <button class="search-trigger" data-search-open aria-label="搜索文章"><Icon name="search" size={17} /></button>
+      <PickerMenu name="theme" label="明暗主题" autoLabel="跟随系统" autoIcon={themeIcon.auto} options={[
+        { value: 'light', label: '浅色', icon: themeIcon.light },
+        { value: 'dark', label: '深色', icon: themeIcon.dark },
+      ]}>
+        {Object.entries(themeIcon).map(([mode, icon]) => <Icon name={icon} class="theme-icon" data-theme-icon={mode} size={18} />)}
+      </PickerMenu>
+  </div>
+</header>
