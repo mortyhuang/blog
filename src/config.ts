@@ -1,9 +1,9 @@
 import type { Hemisphere } from './lib/season';
 
 export const site = {
-  name: 'the mori.',
-  title: 'the mori. — 代码、设计与作品的数字花园',
-  description: '一个开发者的数字花园。分享前端开发、创意编程和设计，记录实用工具与作品。',
+  name: 'Morty',
+  title: 'Morty',
+  description: '分享文章、创意实验与有趣的玩具，记录想法和探索。',
   author: 'Morty',
   email: 'hello@example.com',
   language: 'zh-CN',
