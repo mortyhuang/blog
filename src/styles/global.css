@@ -118,15 +118,7 @@ h1, h2, h3 { color: var(--heading); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  padding: 4px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  transition: border-color .16s ease, background .16s ease;
-}
-.standalone-footer a:hover {
-  border-color: var(--line-strong);
-  background: var(--surface-soft);
+  padding: 5px;
 }
 
 .prose { font-size: 13px; line-height: 1.75; overflow-wrap: anywhere; color: var(--muted); }

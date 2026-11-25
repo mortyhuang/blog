@@ -177,25 +177,12 @@ export function renderHolidayStats(stats: HolidayStats): string {
   return `${summary}<ul class="hc-rows hc-stat-rows">${rows.join('')}</ul>`;
 }
 
-/** 发薪日设置：已选的日子做成可移除的标签，下面是添加表单。 */
-export function renderPaySettings(spec: PaySpec, inputValue = '10'): string {
-  const chips = [
-    ...spec.days.map(
-      (day) => `<button type="button" class="hc-pay-chip" data-pay-remove="${day}" aria-label="移除每月 ${day} 号发薪日">${day} 号<span aria-hidden="true"> ×</span></button>`,
-    ),
-    spec.lastWorkDay
-      ? '<button type="button" class="hc-pay-chip" data-pay-last-remove aria-label="移除每月最后工作日发薪日">最后工作日<span aria-hidden="true"> ×</span></button>'
-      : '',
-  ].join('');
-  const chipRow = chips ? `<div class="hc-pay-chips" data-pay-chips role="group" aria-label="已设置的发薪日">${chips}</div>` : '';
-  const lastButton = spec.lastWorkDay ? '' : '<button type="button" class="hc-pay-button" data-pay-last>+ 最后工作日</button>';
-
-  return [
-    chipRow,
-    '<form class="hc-pay-form" data-pay-form>',
-    `<label class="hc-pay-label">每月 <input class="hc-pay-input" data-pay-input type="number" min="1" max="31" step="1" value="${escapeHtml(inputValue)}" inputmode="numeric" aria-label="发薪日：每月几号" /> 号</label>`,
-    '<button type="submit" class="hc-pay-button is-primary">添加</button>',
-    lastButton,
-    '</form>',
-  ].join('');
+/** 选择一个发薪日。 */
+export function renderPaySettings(spec: PaySpec): string {
+  const selected = spec.lastWorkDay || spec.days[0] === 31 ? 'last' : String(spec.days[0] ?? 10);
+  const options = [
+    ...Array.from({ length: 27 }, (_, i) => [String(i + 1), `每月 ${i + 1} 号`]),
+    ['last', '每月最后工作日'],
+  ];
+  return `<label class="hc-pay-label">发薪日 <select class="hc-pay-select" data-pay-select>${options.map(([value, label]) => `<option value="${value}"${value === selected ? ' selected' : ''}>${label}</option>`).join('')}</select></label>`;
 }

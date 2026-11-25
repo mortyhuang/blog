@@ -117,7 +117,7 @@ export function calendarCardCountdowns(today: Date, data: HolidayData, flags: Da
     detail: `预计发薪 ${cardDate(wage.payDate)}`,
     note: wage.payDate !== wage.scheduledDate
       ? `原定 ${cardDate(wage.scheduledDate)}，遇休息日顺延`
-      : `${wage.label === '最后工作日' ? '每月最后一个工作日' : `每月 ${wage.label}`} · 按页面设置计算`,
+      : `${wage.label === '最后工作日' ? '每月最后一个工作日' : wage.label === '月末' ? '每月最后一天' : `每月 ${wage.label}`} · 按页面设置计算`,
   } : {
     heading: '下次发工资', value: '未设置', unit: '',
     detail: '先在页面添加一个发薪日', note: '支持每月几号或最后一个工作日',

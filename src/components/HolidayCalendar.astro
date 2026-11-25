@@ -851,6 +851,15 @@ const holidayStats = getHolidayStats(initialStatsYear, data, today);
     background: var(--accent);
     border-color: var(--accent);
   }
+  .holiday-calendar .hc-pay-select {
+    padding: 7px 32px 7px 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+  }
   .holiday-calendar .hc-pay-form {
     display: flex;
     align-items: center;
@@ -1300,6 +1309,15 @@ const holidayStats = getHolidayStats(initialStatsYear, data, today);
     let month = initialNow.month;
     let loadRenderer: Promise<CalendarRenderer> | null = null;
     let paySpec = readPaySpec();
+    if (paySpec.days.length + Number(paySpec.lastWorkDay) > 1) {
+      const nearest = getWageRows(new Date(), flags, paySpec)[0];
+      paySpec = nearest.label === '最后工作日'
+        ? { days: [], lastWorkDay: true }
+        : { days: [nearest.label === '月末' ? 31 : Number.parseInt(nearest.label, 10)], lastWorkDay: false };
+    }
+    if (paySpec.days.includes(31)) paySpec = { days: [], lastWorkDay: true };
+    if (!paySpec.days.length && !paySpec.lastWorkDay) paySpec = { days: [10], lastWorkDay: false };
+    savePaySpec(paySpec);
     let statsYear = defaultHolidayStatsYear(new Date(), data);
     const refreshStats = (today = new Date()) => {
       statsEl.innerHTML = renderHolidayStats(getHolidayStats(statsYear, data, today));
@@ -1359,12 +1377,9 @@ const holidayStats = getHolidayStats(initialStatsYear, data, today);
       applyToday();
     };
 
-    const renderPaySettingsTo = (focusInput = false, value = currentInputValue()) => {
-      settingsEl.innerHTML = renderPaySettings(paySpec, value);
-      if (focusInput) settingsEl.querySelector<HTMLInputElement>('[data-pay-input]')?.focus();
+    const renderPaySettingsTo = () => {
+      settingsEl.innerHTML = renderPaySettings(paySpec);
     };
-
-    const currentInputValue = () => settingsEl.querySelector<HTMLInputElement>('[data-pay-input]')?.value ?? '10';
 
     const updatePaySpec = (next: PaySpec) => {
       paySpec = normalizePaySpec(next);
@@ -1375,27 +1390,12 @@ const holidayStats = getHolidayStats(initialStatsYear, data, today);
       nextWageEl.innerHTML = renderNextWageCard(wages);
     };
 
-    settingsEl.addEventListener('click', (event) => {
-      const target = (event.target as HTMLElement).closest<HTMLElement>('[data-pay-remove], [data-pay-last], [data-pay-last-remove]');
-      if (!target) return;
-      const day = target.dataset.payRemove;
-      if (day) {
-        updatePaySpec({ ...paySpec, days: paySpec.days.filter((item) => item !== Number(day)) });
-      } else if (target.dataset.payLast !== undefined) {
-        updatePaySpec({ ...paySpec, lastWorkDay: true });
-      } else {
-        updatePaySpec({ ...paySpec, lastWorkDay: false });
-      }
-    });
-
-    settingsEl.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const input = settingsEl.querySelector<HTMLInputElement>('[data-pay-input]');
-      const raw = Number(input?.value);
-      if (!Number.isFinite(raw) || raw < 1) return;
-      const day = Math.min(31, Math.round(raw));
-      updatePaySpec({ ...paySpec, days: [...paySpec.days, day] });
-      renderPaySettingsTo(true);
+    settingsEl.addEventListener('change', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement) || !target.matches('[data-pay-select]')) return;
+      const value = target.value;
+      updatePaySpec({ days: value && value !== 'last' ? [Number(value)] : [], lastWorkDay: value === 'last' });
+      settingsEl.querySelector<HTMLSelectElement>('[data-pay-select]')?.focus();
     });
 
     const syncNav = () => {

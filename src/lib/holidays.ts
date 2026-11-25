@@ -183,7 +183,7 @@ export function normalizePaySpec(value: unknown): PaySpec {
   if (!value || typeof value !== 'object') return { ...DEFAULT_PAY_SPEC };
   const source = value as Partial<PaySpec>;
   const days = Array.isArray(source.days)
-    ? [...new Set(source.days.map(Number).filter((day) => Number.isInteger(day) && day >= 1 && day <= 31))].sort((a, b) => a - b)
+    ? [...new Set(source.days.map(Number).filter((day) => Number.isInteger(day) && day >= 1 && day <= 31).map((day) => day >= 28 ? 31 : day))].sort((a, b) => a - b)
     : [];
   return { days, lastWorkDay: source.lastWorkDay === true };
 }
@@ -227,7 +227,7 @@ export function getWageRows(today: Date, flags: DayFlags, spec: PaySpec = DEFAUL
   if (targets.length === 0) return [];
 
   const rows = targets.map((target) => {
-    const label = target === 'last' ? '最后工作日' : `${target}号`;
+    const label = target === 'last' ? '最后工作日' : target === 31 ? '月末' : `${target}号`;
     const slots = paydaySlots(today, target, flags);
     // 下一次发薪按顺延后的实际到账日比较，发薪当天也还在本周期里。
     const found = slots.findIndex((slot) => diffDays(slot.actual, today) >= 0);
